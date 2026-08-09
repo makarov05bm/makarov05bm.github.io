@@ -31,8 +31,6 @@ The lab run three containers behind a single published port. An Nginx reverse pr
 ```
 ├── app
 │   ├── app.py
-│   ├── __pycache__
-│   │   └── app.cpython-38.pyc
 │   ├── requirements.txt
 │   ├── sensitive
 │   │   └── aws.key
@@ -56,17 +54,9 @@ The lab run three containers behind a single published port. An Nginx reverse pr
 │   │   ├── secret.html
 │   │   └── topsecret.html
 │   ├── uploads
-│   │   ├── hack.txt
-│   │   ├── report1.csv
-│   │   ├── report22.csv
-│   │   ├── report.csv
-│   │   ├── sk.txt
-│   │   └── sky.txt
 │   └── uploads.db
 ├── app-2
 │   ├── app.py
-│   ├── __pycache__
-│   │   └── app.cpython-38.pyc
 │   ├── static
 │   │   ├── css
 │   │   │   └── style.css
@@ -92,9 +82,7 @@ The lab run three containers behind a single published port. An Nginx reverse pr
 │   ├── flask.conf
 │   └── flask-v2.conf
 ├── static-data
-├── uploads
 └── user-data
-    ├── Contracts.csv
     ├── customer_data.csv
     └── product_list_2026.csv
 ```
