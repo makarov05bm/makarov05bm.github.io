@@ -38,12 +38,12 @@ social:
   email: oussama.messaoudi@owasp.org # change to your email address
   fediverse_handle: # fill in your fediverse handle. E.g. "@username@domain.com"
   links:
+    - https://www.linkedin.com/in/oussama-messaoudi-86525b320
     # The first element serves as the copyright owner's link
     # - https://twitter.com/jacoubRob # change to your Twitter homepage
     - https://github.com/makarov05bm # change to your GitHub homepage
     # Uncomment below to add more social links
     # - https://www.facebook.com/username
-    - https://www.linkedin.com/in/oussama-messaoudi-86525b320
 
 # Site Verification Settings
 webmaster_verifications:
