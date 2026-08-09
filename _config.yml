@@ -14,19 +14,19 @@ timezone:
 # jekyll-seo-tag settings › https://github.com/jekyll/jekyll-seo-tag/blob/master/docs/usage.md
 # ↓ --------------------------
 
-title: Chirpy # the main title
+title: Oussama Messoaudi # the main title
 
-tagline: A text-focused Jekyll theme # it will display as the subtitle
+tagline: Application Security Researcher & Bug Bounty Hunter # it will display as the subtitle
 
 description: >- # used by seo meta and the atom feed
-  A minimal, responsive and feature-rich Jekyll theme for technical writing.
+  Oussama Messaoudi, Security Research, Application Security, Bug Bounty Hunting.
 
 # Fill in the protocol & hostname for your site.
 # E.g. 'https://username.github.io', note that it does not end with a '/'.
 url: "https://makarov05bm.github.io"
 
 github:
-  username: github_username # change to your GitHub username
+  username: makarov05bm # change to your GitHub username
 
 twitter:
   username: twitter_username # change to your Twitter username
@@ -34,16 +34,16 @@ twitter:
 social:
   # Change to your full name.
   # It will be displayed as the default author of the posts and the copyright owner in the Footer
-  name: your_full_name
-  email: example@domain.com # change to your email address
+  name: Oussama Messaoudi
+  email: oussama.messaoudi@owasp.org # change to your email address
   fediverse_handle: # fill in your fediverse handle. E.g. "@username@domain.com"
   links:
     # The first element serves as the copyright owner's link
-    - https://twitter.com/username # change to your Twitter homepage
-    - https://github.com/username # change to your GitHub homepage
+    - https://twitter.com/jacoubRob # change to your Twitter homepage
+    - https://github.com/makarov05bm # change to your GitHub homepage
     # Uncomment below to add more social links
     # - https://www.facebook.com/username
-    # - https://www.linkedin.com/in/username
+    - https://www.linkedin.com/in/oussama-messaoudi-86525b320
 
 # Site Verification Settings
 webmaster_verifications:
@@ -99,7 +99,7 @@ theme_mode: # [light | dark]
 cdn:
 
 # the avatar on sidebar, support local or CORS resources
-avatar:
+avatar: https://pbs.twimg.com/profile_images/1702640145646624768/boZkKQ_R_400x400.jpg
 
 # The URL of the site-wide social preview image used in SEO `og:image` meta tag.
 # It can be overridden by a customized `page.image` in front matter.
