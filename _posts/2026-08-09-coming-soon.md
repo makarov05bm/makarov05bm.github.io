@@ -27,7 +27,74 @@ The lab run three containers behind a single published port. An Nginx reverse pr
 
 <img width="1598" height="984" alt="a0e809bb-9900-4751-b5f9-3e494abbf6ac" src="https://github.com/user-attachments/assets/d6c1c22c-acb9-41f6-9f68-5921234e8b30" />
 
-
----
-
-**Tags:** `web-security` `nginx` `security-research`
+## Project Structure
+```
+├── app
+│   ├── app.py
+│   ├── __pycache__
+│   │   └── app.cpython-38.pyc
+│   ├── requirements.txt
+│   ├── sensitive
+│   │   └── aws.key
+│   ├── static
+│   │   ├── css
+│   │   │   └── style.css
+│   │   └── js
+│   │       └── main.js
+│   ├── static-data
+│   │   ├── cat.jpeg
+│   │   ├── fish.jpg
+│   │   └── README.txt
+│   ├── templates
+│   │   ├── admin.html
+│   │   ├── api.html
+│   │   ├── base.html
+│   │   ├── download_error.html
+│   │   ├── home.html
+│   │   ├── private.html
+│   │   ├── public.html
+│   │   ├── secret.html
+│   │   └── topsecret.html
+│   ├── uploads
+│   │   ├── hack.txt
+│   │   ├── report1.csv
+│   │   ├── report22.csv
+│   │   ├── report.csv
+│   │   ├── sk.txt
+│   │   └── sky.txt
+│   └── uploads.db
+├── app-2
+│   ├── app.py
+│   ├── __pycache__
+│   │   └── app.cpython-38.pyc
+│   ├── static
+│   │   ├── css
+│   │   │   └── style.css
+│   │   └── js
+│   │       └── main.js
+│   └── templates
+│       ├── admin.html
+│       ├── base.html
+│       ├── docs.html
+│       ├── home.html
+│       ├── repo.html
+│       └── report.html
+├── dev
+│   ├── html
+│   │   └── index.html
+│   └── static
+│       ├── db_backup_2026-08-01.sql
+│       ├── deploy.sh
+│       ├── img-1.jpg
+│       └── img-2.jpg
+├── docker-compose.yml
+├── nginx
+│   ├── flask.conf
+│   └── flask-v2.conf
+├── static-data
+├── uploads
+└── user-data
+    ├── Contracts.csv
+    ├── customer_data.csv
+    └── product_list_2026.csv
+```
