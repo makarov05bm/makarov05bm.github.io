@@ -1,9 +1,9 @@
 ---
 layout: post
-title: "Coming soon, keep an eye!"
+title: "Comig soon, keep an eye!"
 date: 2026-08-09 08:00:00 +0100
-categories: [cybersecurity, web-security]
-tags: [security, appsec, security research]
+categories: [web securiy, proxy]
+tags: [security, appsec, proxy]
 ---
 
 # Title of the Blog Post
