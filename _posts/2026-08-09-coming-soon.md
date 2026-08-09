@@ -2,13 +2,18 @@
 layout: post
 title: "Comig soon, keep an eye!"
 date: 2026-08-09 08:00:00 +0100
-categories: [web securiy, proxy]
-tags: [security, appsec, proxy]
+categories: [Web Securiy, Nginx, Proxy]
+tags: [AppSec, Pentest, NGINX, Reverse Proxy]
 ---
 
-# Title of the Blog Post
+# Introduction
+## What is Nginx, and Why Does it Matter?
+Nginx is the most widely deployed reverse proxy in the world, powering roughly a third of all websites. And, as pentesters, bug bounty hunters or even security analysts we almost always come across it used as a load balancer, reverse proxy, or a simple server when doing engagements. Also, if you do configuration security reviews, you will need to have a good grasp of the common misconfigurations as well as some novel techniques usually weaponized by adversaries to bypass what looks seemingly secure.
 
-A short introduction explaining what this post is about and why it matters.
+In a reverse-proxy role, Nginx sits in front one or more backend applications, deciding which requests go where, applying access control, caching responses, terminating TLS and rewriting URLs before they reach the application code behind it. This critical position is what makes Nginx misconfigurations so consequential. A bug in a backend application is usually confined to that application, however, a bug in the proxy level sitting in front of multiple application can easily and quickly enlarge the blast radius, often without the backend applications having any bugs of their own at all.
+
+Nginx configurations are full of directives whose exact semantics are easy to misjudge, whether a trailing slash strips a path prefix, whether one location's directive is inherited by another or not, whether a regex capture group is safe. None of these mistakes look wrong at a glance or a quick skim through the configuration code.
+
 
 ## Overview
 
