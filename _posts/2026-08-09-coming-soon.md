@@ -124,6 +124,7 @@ Only going through the black-box is generally enough if you your work does not i
 
 # Findings: portal.skyblue.com
 ## 1. Path Traversal / LFI via Root proxy_pass Without Upstream URI
+### Black-Box Discovery
 While fuzzing, or by viewing HTML page source code you get a `200 OK` response for the request `GET /assets/README.txt`, or `GET /assets/cat.jpeg`. These types of directories that server static files are the best candidate to test for LFI and path traversal. The detection goes like this:
 
 1. You find a valid URL that serves a static file, now there is potential for information disclosure by replacing the correct file with a random file, like so `GET /assets/anything`, this might return an unintended response that leaks the current directory being used to host and serve the static files (the error depends on the application stack used in the backend, in our case the response is coming from a Flask application).
@@ -142,6 +143,7 @@ Notice the difference in response, the first tells us that there is no such reso
 
 **Impact:** Arbitrary file read of anything the Flask process's OS user can access
 
+### White-Box Root Cause
 Now you are thinking how is this very cliché bug even still relevant with all the security advancements we have made? A very innocent misconfiguration your sysadmin will push thinking it's too safe!
 The important part to notice here is the missing **trailing slash** in `proxy_pass` below at `/`.
 ```nginx
