@@ -19,7 +19,7 @@ Most available hands-on web security training focuses on the application layer b
 
 Damn Vulnerable Nginx Proxy exists to close that gap. Every finding we discuss in the guide is reproducible against a real, running reverse proxy. And for the most learning outcome, several findings are not isolated bugs but chains taken directly from real world findings, previous and novel research.
 
-This blog walks through all twenty documented findings twice; first from black-box perspective; what an external attacker with no idea on the configuration would try, and what they would observe, and then from a white-box perspective, explaining precisely which misused directive or line of code caused the bad behavior.
+This blog walks through almost all twenty documented findings twice; first from black-box perspective; what an external attacker with no idea on the configuration would try, and what they would observe, and then from a white-box perspective, explaining precisely which misused directive or line of code caused the bad behavior.
 
 # 2. Lab Architecture
 ## 2.1 Component Diagram
@@ -103,11 +103,10 @@ Only going through the black-box is generally enough if you your work does not i
 6. Denial of Service via Unbounded Request Body
 7. Web Cache Deception via Extension-Based Cache Matching
 8. Open Redirect via User-Registerable Cloud Storage Bucket Name
-9. Open Redirect to a Fully Attacker-Controlled Cloud Bucket
-10. HTTP Response Splitting via Unsanitized Regex Capture
-11. Access Control Bypass via a Permissive Alternate Root
-12. Default-Allow Gap in the map Directive
-13. Open Redirect / SSRF via Client-Controlled Host Header
+9. HTTP Response Splitting via Unsanitized Regex Capture
+10. Access Control Bypass via a Permissive Alternate Root
+11. Default-Allow Gap in the map Directive
+12. Open Redirect / SSRF via Client-Controlled Host Header
 
 ### 3.2.2 sandbox-dev-001.skyblue.com
 1. Location Match-Priority Bypass via ^~ Overriding a Regex deny Rule
@@ -523,6 +522,8 @@ location ~ ^/s3/ne-1/assets-([0-9]+)/([^s]+)$ {
 }
 ```
 `$1` which is a fully attacker-controllable string is spliced directly into the target bucket name. Anyone can register an S3 bucket named `skyblue-assets<N>` in the same region `ap-northeast-1`. The redirect is also cached for 30 minites; meaning a malicious bucket poisons the caches for every subsequent visitor requesting that N, indeprndent of whether the underlying route is later fixed.
+
+**Note:** Same behavior is present on another endpoint that fetched static files from Google's GCS, so make sure to take a look at that to understand the structure of Google Cloud Buckets.
 
 **Remidiation:**
 Use a fixed, single bucket name with the identifier only in the path, never in the bucket name itself as anyone can takeover a bucket that is not yet registered and use it to host whatever they want.
