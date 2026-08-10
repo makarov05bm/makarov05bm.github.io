@@ -144,19 +144,36 @@ location /assets/ {
   proxy_pass http://flask:7000/assets/;
 }
 ```
-The important part to notice here is the **trailing slash** in `proxy_pass`.
-NGINX replaces the matched `/assets/` prefix with the `/assets/` in `proxy_pass` and appends whatever comes after the matched `/assets/` into `proxy_pass` and it does not resolve the traversal before constructing the upstraem URI. The flow goes like this:
+The important part to notice here is the **trailing slash** in `proxy_pass` at `/assets/` above the missing trailing slash in `proxy_pass` below at `/`.
+```nginx
+location / {
+  proxy_pass http://flask:7000;
+}
+```
+In such case, where location `/` has no upstream URI (i.e, a trailing slash at least), any request that we think would go to a location X with a proxy pass that has an upstream URI, would instead be handled by location `/` and without normalization! So the flow would go like this:
 ```
 GET /assets/../sensitive/file.txt
 
-NGINX matches:
-    /assets/
+NGINX matches the uri to location /
 
 Then constructs the upstream path:
-    /assets/ + ../sensitive/file.txt
+    http://flask:7000 + /assets/../sensitive/file.txt
 
-Result:
-    /assets/../sensitive/file.txt => this goes as it is into proxy_pass
+Flask route /assets catches the request, and treats anything after /assets as a file name, leading to LFI
 ```
-So the normalization is not happening at the proxy level, but at the upstream Flask application level.
+So the normalization is not happening at the proxy level, but at the upstream Flask application level. And that's due to the missing URI trailing slash at the root location. 
 However, if the normalization happened at Nginx, the request wouldn't match the location `/assets/` at all, and otherwise would be seen as `/sensitive/file.txt` and as there is no such location in the proxy, the attacker would have gotten a good `404`.
+
+**Remidiation**
+We can fix all this by simply appending a trailing slash to the root location's upstream.
+```nginx
+  location / {
+    proxy_pass http://flask:7000/;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection 'upgrade';
+    proxy_cache_bypass $http_upgrade;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  }
+```
+<img width="1727" height="556" alt="image" src="https://github.com/user-attachments/assets/6b4f5d18-624c-4d28-b14c-57206194fd63" />
