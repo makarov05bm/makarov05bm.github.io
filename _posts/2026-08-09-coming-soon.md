@@ -96,7 +96,7 @@ Only going through the black-box is generally enough if you your work does not i
 ## 3.2 Finding List: What We Will Go Through?
 ### 3.2.1 portal.skyblue.com
 1. Path Traversal / LFI via Root proxy_pass Without Upstream URI
-2. SSRF via Unvalidated Regex Capture in proxy_pass Hostname
+2. Authorizaion Bypass via Unvalidated Regex Capture in proxy_pass Hostname
 3. IP Spoofing via Missing proxy_set_header Inheritance
 4. Authentication Bypass by Cookie Replay (Static Session Token via auth_request)
 5. CORS Misconfiguration - Missing Regex Anchor
@@ -196,4 +196,17 @@ We can fix all this by simply appending a trailing slash to the root location's 
 <img width="1727" height="556" alt="image" src="https://github.com/user-attachments/assets/6b4f5d18-624c-4d28-b14c-57206194fd63" />
 And always make sure that we don't trust the reverse proxy, and perform server-side validation at the app level regardless.
 
-## 2. SSRF via Unvalidated Regex Capture in proxy_pass Hostname
+## 2. Authorizaion Bypass via Unvalidated Regex Capture in proxy_pass Hostname
+1. You notice an endpoint that appears to do generic backend routing, like the following:
+  - `GET /matchall/status` => you get a status page
+  - `GET /matchall/changelog` => you get a changelog page
+2. We can imagine that the server is routing to whatever comes after `/matchall`, and maybe the upstream is a docker container name, for example `http://conainer_name:container_port`, then the above requests are routed to:
+  - `GET /matchall/status` => `http://flask/status`
+  - `GET /matchall/changelog` => `http://flask/changelog`
+3. To detetct and verify this from a black-box perspective, let's first send a request to just `GET /matchall` or `GET /matchall/`
+<img width="1727" height="724" alt="image" src="https://github.com/user-attachments/assets/f4038bad-4fdb-4d35-9165-7b836b3b78f1" />
+We can conclude that the application is doing just that, taking whatever comes after `/matchall` and passing it to the upstream backend.
+4. This means that we can control whatever the proxy requests from the upstream? Exactly, and let's verify by trying to access a path that we normally return 403.
+<img width="2158" height="294" alt="image" src="https://github.com/user-attachments/assets/a17b6152-fb52-4927-bd06-e9c7f24b6564" />
+<img width="2158" height="696" alt="image" src="https://github.com/user-attachments/assets/5a3fc304-a4f8-4042-86cf-354e34d39889" />
+**NICE**
