@@ -217,7 +217,7 @@ Indeed, we can conclude that the application is doing just that, taking whatever
 **Impact:** Unauthorized access to protected resources.
 
 ### White-Box Root Cause
-```
+```nginx
 location ~ /matchall(.*) {
   proxy_pass http://flask:7000/$1;
   proxy_redirect off;
@@ -225,7 +225,7 @@ location ~ /matchall(.*) {
 ```
 `$1` is the regex capture, everything after `/matchall` is the request is fully attacker-controlled, and it's directly concatenated onto the upstream uri.
 Although there are already access controls to protect the privileged paths:
-```
+```nginx
 location = /admin {
     deny all;
 }
@@ -242,7 +242,7 @@ But that's entirely bypassed and never reached by the client request. The client
 
 **Remidiation**
 Add a new deny list to deny any requests trying to access the sensitive pages through the `/matchall` route.
-```
+```nginx
 location ~ ^/matchall/(admin(?:/|$)|secret(?:/|$)|private(?:/|$)|topsecret(?:/|$)) {
     deny all;
 }
