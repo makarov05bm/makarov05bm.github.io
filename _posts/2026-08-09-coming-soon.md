@@ -95,7 +95,7 @@ Only going through the black-box is generally enough if you your work does not i
 
 ## 3.2 Finding List: What We Will Go Through?
 ### 3.2.1 portal.skyblue.com
-1. Path Traversal / LFI via Root proxy_pass With Slash Prefix and Upstream URI
+1. Path Traversal / LFI via Root proxy_pass Without Upstream URI
 2. SSRF via Unvalidated Regex Capture in proxy_pass Hostname
 3. IP Spoofing via Missing proxy_set_header Inheritance
 4. Authentication Bypass by Cookie Replay (Static Session Token via auth_request)
@@ -123,7 +123,7 @@ Only going through the black-box is generally enough if you your work does not i
 ---
 
 # Findings: portal.skyblue.com
-## 1. Path Traversal / LFI via Root proxy_pass With Slash Prefix and Upstream URI
+## 1. Path Traversal / LFI via Root proxy_pass Without Upstream URI
 While fuzzing, or by viewing HTML page source code you get a `200 OK` response for the request `GET /assets/README.txt`, or `GET /assets/cat.jpeg`. These types of directories that server static files are the best candidate to test for LFI and path traversal. The detection goes like this:
 
 1. You find a valid URL that serves a static file, now there is potential for information disclosure by replacing the correct file with a random file, like so `GET /assets/anything`, this might return an unintended response that leaks the current directory being used to host and serve the static files (the error depends on the application stack used in the backend, in our case the response is coming from a Flask application).
