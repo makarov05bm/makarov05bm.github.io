@@ -88,3 +88,34 @@ The lab run three containers behind a single published port. An Nginx reverse pr
 ```
 
 # 3. Methodology
+## Black-Box vs White-Box Testing is this Guide
+Every finding below is presented twice. The black-box section describes what a tester with no access to the configuration or source code would try, and what response would tip them off that something is wrong and worth digging down the rabbit hole. The white-box section then opens the configuration and application code and explains, directive by directive, exactly why the behavior happened.
+
+Only going through the black-box is generally enough if you your work does not involve doing code review, however it's still a good skill to have as it builds the deeper skill; recognizing patters and imagining how the proxy is configured without having actual access to the config file.
+
+## Finding List: What We Will Go Through?
+### portal.skyblue.com
+1. Path Traversal / LFI via Root proxy_pass Without a URI
+2. SSRF via Unvalidated Regex Capture in proxy_pass Hostname
+3. IP Spoofing via Missing proxy_set_header Inheritance
+4 Authentication Bypass by Cookie Replay (Static Session Token via auth_request)
+5 CORS Misconfiguration — Missing Regex Anchor
+6 Denial of Service via Unbounded Request Body
+7 Web Cache Deception via Extension-Based Cache Matching
+8 Open Redirect via User-Registerable Cloud Storage Bucket Name
+9 Open Redirect to a Fully Attacker-Controlled Cloud Bucket
+10 HTTP Response Splitting via Unsanitized Regex Capture
+11 Access Control Bypass via a Permissive Alternate Root
+12 Default-Allow Gap in the map Directive
+13 Open Redirect / SSRF via Client-Controlled Host Header
+
+### sandbox-dev-001.skyblue.com
+1 Location Match-Priority Bypass via ^~ Overriding a Regex deny Rule
+2 Stored XSS via Unescaped Log Injection
+3 Information Disclosure via Exposed stub_status
+
+### sandbox-dev-002.skyblue.com
+1 Open Redirect via Missing Leading Slash in a Rewrite Capture Group
+2 Access Control Inconsistency — auth_basic Not Inherited by a More-Specific Location
+3 Credential Brute-Force via Missing Rate Limiting on Basic Auth
+4 Authentication Bypass via satisfy any and a Broken IP Trust Boundary
