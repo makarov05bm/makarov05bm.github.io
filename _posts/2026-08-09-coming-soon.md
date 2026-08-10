@@ -106,7 +106,7 @@ Only going through the black-box is generally enough if you your work does not i
 9. HTTP Response Splitting via Unsanitized Regex Capture
 10. Access Control Bypass via a Permissive Alternate Root
 11. Default-Allow Gap in the map Directive
-12. Open Redirect / SSRF via Client-Controlled Host Header
+12. SSRF via Client-Controlled Host Header
 
 ### 3.2.2 sandbox-dev-001.skyblue.com
 1. Location Match-Priority Bypass via ^~ Overriding a Regex deny Rule
@@ -523,10 +523,11 @@ location ~ ^/s3/ne-1/assets-([0-9]+)/([^s]+)$ {
 ```
 `$1` which is a fully attacker-controllable string is spliced directly into the target bucket name. Anyone can register an S3 bucket named `skyblue-assets<N>` in the same region `ap-northeast-1`. The redirect is also cached for 30 minites; meaning a malicious bucket poisons the caches for every subsequent visitor requesting that N, indeprndent of whether the underlying route is later fixed.
 
-**Note:** Same behavior is present on another endpoint that fetched static files from Google's GCS, so make sure to take a look at that to understand the structure of Google Cloud Buckets.
+**Note:** Same behavior is present on another endpoint that fetches static files from Google's GCS, so make sure to take a look at that to understand the structure of Google Cloud Buckets.
 
 **Remidiation:**
 Use a fixed, single bucket name with the identifier only in the path, never in the bucket name itself as anyone can takeover a bucket that is not yet registered and use it to host whatever they want.
 ```nginx
 return 301 https://s3-ap-northeast-1.amazonaws.com/skyblue-assets/$1/$2;
 ```
+
