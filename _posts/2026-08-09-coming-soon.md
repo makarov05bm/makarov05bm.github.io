@@ -1,4 +1,4 @@
----
+<img width="1726" height="648" alt="image" src="https://github.com/user-attachments/assets/4780914b-7c6f-4d16-856a-7be236a3bc1b" />---
 layout: post
 title: "Comig soon, keep an eye!"
 date: 2026-08-09 08:00:00 +0100
@@ -96,7 +96,7 @@ Only going through the black-box is generally enough if you your work does not i
 ## 3.2 Finding List: What We Will Go Through?
 ### 3.2.1 portal.skyblue.com
 1. Path Traversal / LFI via Root proxy_pass Without Upstream URI
-2. Authorizaion Bypass via Unvalidated Regex Capture in proxy_pass Hostname
+2. Authorizaion Bypass via Unvalidated Regex Capture in proxy_pass
 3. IP Spoofing via Missing proxy_set_header Inheritance
 4. Authentication Bypass by Cookie Replay (Static Session Token via auth_request)
 5. CORS Misconfiguration - Missing Regex Anchor
@@ -196,7 +196,7 @@ We can fix all this by simply appending a trailing slash to the root location's 
 <img width="1727" height="556" alt="image" src="https://github.com/user-attachments/assets/6b4f5d18-624c-4d28-b14c-57206194fd63" />
 And always make sure that we don't trust the reverse proxy, and perform server-side validation at the app level regardless.
 
-## 2. Authorizaion Bypass via Unvalidated Regex Capture in proxy_pass Hostname
+## 2. Authorizaion Bypass via Unvalidated Regex Capture in proxy_pass
 ### Black-Box Discovery
 1. You notice an endpoint that appears to do generic backend routing, like the following:
   - `GET /matchall/status` => you get a status page
@@ -209,7 +209,7 @@ And always make sure that we don't trust the reverse proxy, and perform server-s
 Then, we send a request to `/status` instead of `/matchall/status` and `/changelog` instead of `/matchall/changelog`, and if we see the same exact responses, that confirms the bug.
 <img width="2158" height="723" alt="image" src="https://github.com/user-attachments/assets/4fa101c4-59eb-42c9-a14a-86ecc89587a1" />
 Indeed, we can conclude that the application is doing just that, taking whatever comes after `/matchall` and passing it to the upstream backend.
-4. This means that we can control whatever the proxy requests from the upstream? Exactly, and let's verify by trying to access a path that we normally return 403.
+4. This means that we can control whatever the proxy requests from the upstream? Exactly, and let's verify by trying to access a path that we normally return `403`.
 <img width="2158" height="294" alt="image" src="https://github.com/user-attachments/assets/a17b6152-fb52-4927-bd06-e9c7f24b6564" />
 <img width="2158" height="696" alt="image" src="https://github.com/user-attachments/assets/5a3fc304-a4f8-4042-86cf-354e34d39889" />
 **NICE**
@@ -218,7 +218,7 @@ Indeed, we can conclude that the application is doing just that, taking whatever
 
 ### White-Box Root Cause
 ```nginx
-location ~ /matchall(.*) {
+location ~ /matchall/(.*) {
   proxy_pass http://flask:7000/$1;
   proxy_redirect off;
 }
@@ -246,4 +246,111 @@ Add a new deny list to deny any requests trying to access the sensitive pages th
 location ~ ^/matchall/(admin(?:/|$)|secret(?:/|$)|private(?:/|$)|topsecret(?:/|$)) {
     deny all;
 }
+```
+
+## 3. IP Spoofing via Missing proxy_set_header Inheritance
+### Black-Box Discovery
+1. Doing fuzzing you notice that `/internal/debug` returns `403`
+2. Add a forged [`X-Forwarded-For`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/X-Forwarded-For) or `X-Real-IP` header claiming an internal address:
+```
+GET /internal/debug
+Host: portal.skyblue.com:8080
+X-Forwarded-For: 10.1.1.1
+```
+3. If this return `200`, this means one of the three:
+   - The reverse proxy blindly trusts the header
+   - The reverse proxy is not passing the `X-Forwarded-For` header to the backend
+   - The backend is accessing the wrong `X-Forwarded-For` value in the list
+
+<img width="1726" height="648" alt="image" src="https://github.com/user-attachments/assets/cf9a8858-7b7f-4d03-b0d8-3b047284cd74" />
+<img width="1726" height="648" alt="image" src="https://github.com/user-attachments/assets/d800fb88-d794-4bcc-9a1e-2c1d717f7cc4" />
+**NICE**
+
+**Impact:** Full bypass of an IP-based access control using a single trivially forged request header.
+
+### White-Box Root Cause
+This absolutely looks like a simple trusted spoofable header bug, but the precise mechanics are more specific and worth understanding.
+
+```nginx
+location /internal/debug {
+  set $trusted 0;
+  if ($http_x_forwarded_for ~* "^10\.") { set $trusted 1; }
+  if ($trusted = 0) { return 403; }
+
+  add_header Cache-Control "no-cache, no-store, max-age=0, must-revalidate" always;
+  proxy_pass http://flask:7000;
+}
+```
+
+The most important thing to keep in mind is that `proxy_set_header` directives do NOT inherit between sibling location blocks. In our case, the location `/` correctly sets `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;` which appends the real client's IP to the `X-Forwarded-For` array. But, as this directive is living in `location /`, not at the server level, any other sibling location, specifically `location /internal/debug` will not inherit it.
+
+Because `location /internal/debug` defines no `proxy_set_header` directive of its own, Nginx forwards the `X-Forwarded-For` list as it received it, without appending the real IP of whoever it received the request from.
+
+Then, Flask's `ProxyFix(x_for=1) trusts that the real client' IP is one hop from the right of the `X-Forwarded-For` list. And since Nginx never appended its own trustworthy value, the single value and rightmost first value is the value spoofed by the attacker, so Flask accepts it as `request.remote_addr`.
+
+**With vulnerable configuration:**
+```
+Attacker sends:
+X-Forwarded-For: 127.0.0.1
+
+        ↓
+
+/internal/debug has NO proxy_set_header
+        ↓
+
+Nginx forwards it unchanged:
+X-Forwarded-For: 127.0.0.1
+
+        ↓
+
+Flask ProxyFix(x_for=1)
+
+Header is split into:
+["127.0.0.1"]
+
+        ↓
+
+Take 1 value from the right:
+127.0.0.1
+
+        ↓
+
+request.remote_addr = 127.0.0.1
+```
+
+**With correct configuration:**
+```
+Attacker sends:
+X-Forwarded-For: 127.0.0.1
+
+        ↓
+
+Nginx appends the real client IP:
+X-Forwarded-For: 127.0.0.1, 192.168.1.50
+
+        ↓
+
+Flask ProxyFix(x_for=1)
+
+Header is split into:
+["127.0.0.1", "192.168.1.50"]
+
+        ↓
+
+Take 1 value from the right:
+192.168.1.50
+
+        ↓
+
+request.remote_addr = 192.168.1.50
+```
+
+Another thing worth mentioning, is that doing a check against `$http_x_forwarded_for` at Nginx level is generally bad practice, because `$http_x_forwarded_for` is basically whatever value Nginx received from the client, which is trivially forged.
+
+**Remidiation**
+Move the XFF handling to the server level so every location inherits it and never rely on XFF alone, pair with nginx's own realip module against a real trust boundry:
+```
+set_real_ip_from 172.16.0.0/12; # XFF can only be set by whoever belongs to this range
+real_ip_header X-Forwarded-For;
+real_ip_recursive on;
 ```
