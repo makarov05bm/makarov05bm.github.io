@@ -146,7 +146,7 @@ GET /en-us/public
 **NICE**
 
 ### White-Box Root Cause
-A server block can define two locations to ac as the root of the same backend upstream, in this case, whether you send a request to `/` or `/en-us`, they both lend exacly at the same route (function) at the application level.
+A server block can define two locations to act as the root of the same backend upstream, in this case, whether you send a request to `/` or `/en-us`, they both lend exacly at the same route (function) at the application level.
 ```nginx
 location / {
   proxy_pass http://flask:7000;
