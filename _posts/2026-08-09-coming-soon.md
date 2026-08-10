@@ -139,6 +139,7 @@ Notice the difference in response, the first tells us that there is no such reso
 <img width="1724" height="367" alt="image" src="https://github.com/user-attachments/assets/85bd7fe3-576c-4544-82f7-762ce1f0f3bb" />
 4. Sometimes, there is no need to even look for a dir, the dir above the current dir can hold some important files, such as source code files.
 <img width="1727" height="1157" alt="image" src="https://github.com/user-attachments/assets/9a0f7982-2df2-44d1-9d5b-39ee6c6b9d7d" />
+
 **NICE**
 
 **Impact:** Arbitrary file read of anything the Flask process's OS user can access
