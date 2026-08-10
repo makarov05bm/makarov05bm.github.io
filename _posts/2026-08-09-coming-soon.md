@@ -185,16 +185,7 @@ location /en-us/ {
 You did your fuzzing, and found a some paths that return `403`, if the bypass in finding #1 did not help you bypass the `403`, a misconfigured Nginx proxy can offer you another change to conduct a bypass.
 1. You want to bypass the 403 given by `/admin`
 2. Try to find any clues that leak which framework is running the target backend application (Flask, NodeJS, SpringBoot, Laravel...)
-3. Fingerprinting the backend framework is good, but it's not mandatory, it just help you focus of the bypasses available for that exact framework, in our case the backend is application running Flask (you can determine this using many techniques, the one I usually use is find an endpoint that the app uses to serve me a file's content, and replace that with a file that does not exist and watch the response to the GET request). For Flask this table will help us:
-
-| Nginx Version | Flask Bypass Characters |
-|---|---|
-| 1.22.0 | `\x85`, `\xA0` |
-| 1.21.6 | `\x85`, `\xA0` |
-| 1.20.2 | `\x85`, `\xA0`, `\x1F`, `\x1E`, `\x1D`, `\x1C`, `\x0C`, `\x0B` |
-| 1.18.0 | `\x85`, `\xA0`, `\x1F`, `\x1E`, `\x1D`, `\x1C`, `\x0C`, `\x0B` |
-| 1.16.1 | `\x85`, `\xA0`, `\x1F`, `\x1E`, `\x1D`, `\x1C`, `\x0C`, `\x0B` |
-
+3. Fingerprinting the backend framework is good, but it's not mandatory, it just help you focus of the bypasses available for that exact framework, in our case the backend is application running Flask (you can determine this using many techniques, the one I usually use is find an endpoint that the app uses to serve me a file's content, and replace that with a file that does not exist and watch the response to the GET request). Find at the end of this section a table containing all possible bypass characters
 4. If you know the Nginx version used use a respective character, if you don't you can try all of them (in our lab, the proxy is running `nginx/1.31.3`). To conduct the bypass, make sure to capture the request in Burp
 <img width="1727" height="379" alt="image" src="https://github.com/user-attachments/assets/e749c3f1-556e-4ac0-b6f5-74bef8012b99" />
 Now, add a `/` after `/admin`, and select the slash and from **Inspector** on the right, change its code to `85`
@@ -236,6 +227,14 @@ location /admin {
 ```
 
 **Bypass codes for other backend frameworks:**
+
+| Nginx Version | Flask Bypass Characters |
+|---|---|
+| 1.22.0 | `\x85`, `\xA0` |
+| 1.21.6 | `\x85`, `\xA0` |
+| 1.20.2 | `\x85`, `\xA0`, `\x1F`, `\x1E`, `\x1D`, `\x1C`, `\x0C`, `\x0B` |
+| 1.18.0 | `\x85`, `\xA0`, `\x1F`, `\x1E`, `\x1D`, `\x1C`, `\x0C`, `\x0B` |
+| 1.16.1 | `\x85`, `\xA0`, `\x1F`, `\x1E`, `\x1D`, `\x1C`, `\x0C`, `\x0B` |
 
 | Nginx Version | Node.js Bypass Characters |
 |---|---|
