@@ -454,7 +454,7 @@ limit_req_zone $binary_remote_addr zone=upload_limit:10m rate=1r/s;
 
 ## 5. CORS Misconfiguration via Missing Regex Anchor
 ### Black-Box Discovery
-You specify an endpoint that leaks sensitive/auth/pii data of the logged in user, you can immediately think of CORS. Let's quickly setup the victim's side:
+You spot an endpoint that leaks sensitive/auth/pii data of the logged-in user, you can immediately think of CORS. Let's quickly setup the victim's side:
 1. Victim logs in via `/admin/portal` with cred: `admin:skyblue321`
 2. Victim visits a page you send him
 Now, as the attacker, open another browser to test if you can access the sensitive page, this usually involves the following:
@@ -485,4 +485,47 @@ if ($http_origin ~* ^https://([a-zA-Z0-9-]+\.)?skyblue\.com$) {
   add_header 'Access-Control-Allow-Origin' "$http_origin" always;
   add_header 'Access-Control-Allow-Credentials' 'true' always;
 }
+```
+
+## 6. Open Redirect via User-Registerable Cloud Storage Bucket Name
+### Black-Box Discovery
+1. You go through your Burp history, and you notice and endpoint that seems to be requesting images from S3:
+```
+GET /s3/ne-1/assets-1/logo.png
+```
+2. You send it it Repeater and send it, you notice that it's a `301` redirect to:
+```
+https://s3-ap-northeast-1.amazonaws.com/skyblue-assets-1/logo.png
+```
+3. You notice the `1` from our domain's original endpoint `http://portal.skyblue.com/s3/ne-1/assets-1/logo.png` is being reflected in the S3 bucket name at the amazonaws URL we are being redirected to
+4. To confirm this, you sent the request:
+```
+GET /s3/ne-1/assets-111111111111/logo.png
+```
+If the response is a redirect to:
+```
+https://s3-ap-northeast-1.amazonaws.com/skyblue-assets111111111111/logo.png
+```
+Then, you got a confirmed bug and you now you should register the bucket `skyblue-assets-111111111111` and host an HTML page there.
+<img width="1727" height="688" alt="image" src="https://github.com/user-attachments/assets/ad1604c2-e5b7-48ab-83ad-dea4b67f3ed9" />
+
+**Impact:** Phishing via a trusted-domain redirect chain, compounded by 30-minute cache poisoning of the redirect target for any visitor requesting the same crafted number.
+
+### White-Box Root Cause
+```nginx
+location ~ ^/s3/ne-1/assets-([0-9]+)/([^s]+)$ {
+    access_log off;
+    proxy_cache static_cache;
+    proxy_cache_valid 200 30m;
+    proxy_cache_key $scheme$host$request_uri;
+    add_header X-Cache-Status $upstream_cache_status always;
+    return 301 https://s3-ap-northeast-1.amazonaws.com/skyblue-assets$1/$2;
+}
+```
+`$1` which is a fully attacker-controllable string is spliced directly into the target bucket name. Anyone can register an S3 bucket named `skyblue-assets<N>` in the same region `ap-northeast-1`. The redirect is also cached for 30 minites; meaning a malicious bucket poisons the caches for every subsequent visitor requesting that N, indeprndent of whether the underlying route is later fixed.
+
+**Remidiation:**
+Use a fixed, single bucket name with the identifier only in the path, never in the bucket name itself as anyone can takeover a bucket that is not yet registered and use it to host whatever they want.
+```nginx
+return 301 https://s3-ap-northeast-1.amazonaws.com/skyblue-assets/$1/$2;
 ```
