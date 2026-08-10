@@ -286,7 +286,7 @@ The most important thing to keep in mind is that `proxy_set_header` directives d
 
 Because `location /internal/debug` defines no `proxy_set_header` directive of its own, Nginx forwards the `X-Forwarded-For` list as it received it, without appending the real IP of whoever it received the request from.
 
-Then, Flask's `ProxyFix(x_for=1) trusts that the real client' IP is one hop from the right of the `X-Forwarded-For` list. And since Nginx never appended its own trustworthy value, the single value and rightmost first value is the value spoofed by the attacker, so Flask accepts it as `request.remote_addr`.
+Then, Flask's `ProxyFix(x_for=1)` trusts that the real client' IP is one hop from the right of the `X-Forwarded-For` list. And since Nginx never appended its own trustworthy value, the single value and rightmost first value is the value spoofed by the attacker, so Flask accepts it as `request.remote_addr`.
 
 **With vulnerable configuration:**
 ```
@@ -349,7 +349,7 @@ Another thing worth mentioning, is that doing a check against `$http_x_forwarded
 
 **Remidiation**
 Move the XFF handling to the server level so every location inherits it and never rely on XFF alone, pair with nginx's own realip module against a real trust boundry:
-```
+```nginx
 set_real_ip_from 172.16.0.0/12; # XFF can only be set by whoever belongs to this range
 real_ip_header X-Forwarded-For;
 real_ip_recursive on;
