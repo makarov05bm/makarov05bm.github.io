@@ -523,7 +523,7 @@ location /upload {
 limit_req_zone $binary_remote_addr zone=upload_limit:10m rate=1r/s;
 ```
 
-## 5. CORS Misconfiguration via Missing Regex Anchor
+## 7. CORS Misconfiguration via Missing Regex Anchor
 ### Black-Box Discovery
 You spot an endpoint that leaks sensitive/auth/pii data of the logged-in user, you can immediately think of CORS. Let's quickly setup the victim's side:
 1. Victim logs in via `/admin/portal` with cred: `admin:skyblue321`
@@ -558,7 +558,7 @@ if ($http_origin ~* ^https://([a-zA-Z0-9-]+\.)?skyblue\.com$) {
 }
 ```
 
-## 6. Open Redirect via User-Registerable Cloud Storage Bucket Name
+## 8. Open Redirect via User-Registerable Cloud Storage Bucket Name
 ### Black-Box Discovery
 1. You go through your Burp history, and you notice and endpoint that seems to be requesting images from S3:
 ```
