@@ -139,30 +139,37 @@ Notice the difference in response, the first tells us that there is no such reso
 **NICE**
 
 Now you are thinking how is this very cliché bug even still relevant with all the security advancements we have made? A very innocent misconfiguration your sysadmin will push thinking it's too safe!
-```nginx
-location /assets/ {
-  proxy_pass http://flask:7000/assets/;
-}
-```
-The important part to notice here is the **trailing slash** in `proxy_pass` at `/assets/` above the missing trailing slash in `proxy_pass` below at `/`.
+The important part to notice here is the missing **trailing slash** in `proxy_pass` below at `/`.
 ```nginx
 location / {
   proxy_pass http://flask:7000;
+  proxy_http_version 1.1;
+  proxy_set_header Upgrade $http_upgrade;
+  proxy_set_header Connection 'upgrade';
+  proxy_cache_bypass $http_upgrade;
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+}
+
+location /assets {
+  proxy_pass http://flask:7000/assets;
 }
 ```
-In such case, where location `/` has no upstream URI (i.e, a trailing slash at least), any request that we think would go to a location X with a proxy pass that has an upstream URI, would instead be handled by location `/` and without normalization! So the flow would go like this:
+In such case, where location `/` has no upstream URI (i.e, a trailing slash at least), any request that is not matched to any location block, will go as it is (unormalized) into the `proxy_pass` at location `/`, So the flow would go like this:
 ```
 GET /assets/../sensitive/file.txt
 
-NGINX matches the uri to location /
+nginx: normalizes and gets /sensitive/file.txt
 
-Then constructs the upstream path:
-    http://flask:7000 + /assets/../sensitive/file.txt
+NGINX: there is not matching block for /sensitive
 
-Flask route /assets catches the request, and treats anything after /assets as a file name, leading to LFI
+NGINX routes the uri as it is (unormalized) to location /
+
+NGINX: constructs the upstream path => 
+  http://flask:7000 + /assets/../sensitive/file.txt
+
+Flask: the route /assets catches the request, and treats anything after /assets as a file name, leading to LFI
 ```
 So the normalization is not happening at the proxy level, but at the upstream Flask application level. And that's due to the missing URI trailing slash at the root location. 
-However, if the normalization happened at Nginx, the request wouldn't match the location `/assets/` at all, and otherwise would be seen as `/sensitive/file.txt` and as there is no such location in the proxy, the attacker would have gotten a good `404`.
 
 **Remidiation**
 We can fix all this by simply appending a trailing slash to the root location's upstream.
