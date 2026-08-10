@@ -140,6 +140,8 @@ Notice the difference in response, the first tells us that there is no such reso
 <img width="1727" height="1157" alt="image" src="https://github.com/user-attachments/assets/9a0f7982-2df2-44d1-9d5b-39ee6c6b9d7d" />
 **NICE**
 
+**Impact:** Arbitrary file read of anything the Flask process's OS user can access
+
 Now you are thinking how is this very cliché bug even still relevant with all the security advancements we have made? A very innocent misconfiguration your sysadmin will push thinking it's too safe!
 The important part to notice here is the missing **trailing slash** in `proxy_pass` below at `/`.
 ```nginx
@@ -186,5 +188,6 @@ We can fix all this by simply appending a trailing slash to the root location's 
   }
 ```
 <img width="1727" height="556" alt="image" src="https://github.com/user-attachments/assets/6b4f5d18-624c-4d28-b14c-57206194fd63" />
+And always make sure that we don't trust the reverse proxy, and perform server-side validation at the app level regardless.
 
 ## 2. SSRF via Unvalidated Regex Capture in proxy_pass Hostname
