@@ -99,7 +99,7 @@ Only going through the black-box is generally enough if you your work does not i
 2. Authorizaion Bypass via Unvalidated Regex Capture in proxy_pass
 3. IP Spoofing via Missing proxy_set_header Inheritance
 4. Authentication Bypass by Cookie Replay (Static Session Token via auth_request)
-5. CORS Misconfiguration - Missing Regex Anchor
+5. CORS Misconfiguration via Missing Regex Anchor
 6. Denial of Service via Unbounded Request Body
 7. Web Cache Deception via Extension-Based Cache Matching
 8. Open Redirect via User-Registerable Cloud Storage Bucket Name
@@ -172,7 +172,7 @@ Per-path deny rules provide no real coverage once any other location the same ba
 
 **Impact:** Access controls bypass via alternate entry point.
 
-**Remidiation"**
+**Remidiation:**
 Deny-list at the alternate root's location block too:
 ```nginx
 location /en-us/ {
@@ -236,7 +236,7 @@ Flask: the route /assets catches the request, and treats anything after /assets 
 ```
 So the normalization is not happening at the proxy level, but at the upstream Flask application level. And that's due to the missing URI trailing slash at the root location. 
 
-**Remidiation**
+**Remidiation:**
 We can fix all this by simply appending a trailing slash to the root location's upstream.
 ```nginx
   location / {
@@ -295,7 +295,7 @@ location ~ ^/(secret|private|topsecret) {
 ```
 But that's entirely bypassed and never reached by the client request. The client request only matches `location ~ /matchall(.*)` and never `location ~ ^/(secret|private|topsecret)` or any other location block intended to protect against unauthorized access.
 
-**Remidiation**
+**Remidiation:**
 Add a new deny list to deny any requests trying to access the sensitive pages through the `/matchall` route.
 ```nginx
 location ~ ^/matchall/(admin(?:/|$)|secret(?:/|$)|private(?:/|$)|topsecret(?:/|$)) {
@@ -402,7 +402,7 @@ request.remote_addr = 192.168.1.50
 
 Another thing worth mentioning, is that doing a check against `$http_x_forwarded_for` at Nginx level is generally bad practice, because `$http_x_forwarded_for` is basically whatever value Nginx received from the client, which is trivially forged.
 
-**Remidiation**
+**Remidiation:**
 Move the XFF handling to the server level so every location inherits it and never rely on XFF alone, pair with nginx's own realip module against a real trust boundry:
 ```nginx
 set_real_ip_from 172.16.0.0/12; # XFF can only be set by whoever belongs to this range
@@ -417,7 +417,7 @@ You come across a file upload endpoint, among all the impacts you may aim for is
 ```
 POST /upload (X-Filename: file.txt, small body) -> 201 Created
 ```
-2. Now, upload a very large body (multiple GB) and observe backend memory / disk usage while the request is in flight (you use `docker compose stats flask` in our lab)
+2. Now, upload a very large body (multiple GB) and observe backend memory / disk usage while the request is in flight (you can use `docker compose stats flask` in our lab)
 3. Through several such uploads concurrently. If backend memory spikes, with no server-side rejection of any size, the endpoint effectively has no upload limit, both on the proxy and application level.
 
 **Impact:** A single unauthenticated bad actor can drive unbounded memory and/or disk consumption on the backend with trivial bandwidth investment.
@@ -440,7 +440,7 @@ with open(target_path, "wb") as f:
 f.write(data)
 ```
 
-**Remidiation**
+**Remidiation:**
 Don't set `client_max_body_size` to 0, and make sure to rate limit requests to the endpoint:
 ```nginx
 location /upload {
@@ -450,4 +450,39 @@ location /upload {
   proxy_pass http://flask:7000/upload;
 }
 limit_req_zone $binary_remote_addr zone=upload_limit:10m rate=1r/s;
+```
+
+## 5. CORS Misconfiguration via Missing Regex Anchor
+### Black-Box Discovery
+You specify an endpoint that leaks sensitive/auth/pii data of the logged in user, you can immediately think of CORS. Let's quickly setup the victim's side:
+1. Victim logs in via `/admin/portal` with cred: `admin:skyblue321`
+2. Victim visits a page you send him
+Now, as the attacker, open another browser to test if you can access the sensitive page, this usually involves the following:
+1. Host a simple HTML page that make a request to the sensitive endpoint, in our case it's `/account/session`
+2. Open it from another browser where you are logged in as the victim, if your page can access `/account/session` with no CORS problems, that's a confirmed bug.
+
+**Impact:** Access to sensitive pages, reading authenticated responses cross-origin; including full session/account data theft against any logged-in user lured into the attacker's malicious page.
+
+### White-Box Root Cause
+```nginx
+location /account/session {
+  if ($http_origin ~* ^https://([a-zA-Z0-9-]+\.)*skyblue\.com) {
+      add_header 'Access-Control-Allow-Origin' "$http_origin" always;
+      add_header 'Access-Control-Allow-Credentials' 'true' always;
+  }
+
+  proxy_pass http://flask:7000/account/session;
+}
+```
+The root cause of the bug we described in the black-box section most of the time comes one reason; bad regex. In the above code, the pattern is anchored at the start `^` but has NO trailing `$`, meaning this regex only needs the prefix to line up, and here is nothing stopping additional characters from following `skyblue.com` in the matched string.
+
+`https://portal.skyblue.com.attacker.tld` satisfies this regex because it starts with the required prefix; the alteration for subdomains is not the bug here, it's the missing end-anchor.
+
+**Remidiation:**
+Bound the entire origin string in the regex, not just the prefix:
+```nginx
+if ($http_origin ~* ^https://([a-zA-Z0-9-]+\.)?skyblue\.com$) {
+  add_header 'Access-Control-Allow-Origin' "$http_origin" always;
+  add_header 'Access-Control-Allow-Credentials' 'true' always;
+}
 ```
