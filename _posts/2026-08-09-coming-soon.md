@@ -1,4 +1,4 @@
-<img width="1726" height="648" alt="image" src="https://github.com/user-attachments/assets/4780914b-7c6f-4d16-856a-7be236a3bc1b" />---
+---
 layout: post
 title: "Comig soon, keep an eye!"
 date: 2026-08-09 08:00:00 +0100
