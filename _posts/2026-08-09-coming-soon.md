@@ -409,3 +409,45 @@ set_real_ip_from 172.16.0.0/12; # XFF can only be set by whoever belongs to this
 real_ip_header X-Forwarded-For;
 real_ip_recursive on;
 ```
+
+## 5. Denial of Service via Unbounded Request Body
+### Black-Box Discovery
+You come across a file upload endpoint, among all the impacts you may aim for is DoS, which in case a misconfigured reverse proxy can be done through uploading extremely large data streams.
+1. Upload a small file to get an idea of how the endpoint responds normally
+```
+POST /upload (X-Filename: file.txt, small body) -> 201 Created
+```
+2. Now, upload a very large body (multiple GB) and observe backend memory / disk usage while the request is in flight (you use `docker compose stats flask` in our lab)
+3. Through several such uploads concurrently. If backend memory spikes, with no server-side rejection of any size, the endpoint effectively has no upload limit, both on the proxy and application level.
+
+**Impact:** A single unauthenticated bad actor can drive unbounded memory and/or disk consumption on the backend with trivial bandwidth investment.
+
+### White-Box Root Cause
+```nginx
+location /upload {
+  client_max_body_size 0;
+  proxy_pass http://flask:7000/upload;
+}
+```
+`client_max_body_size 0` explicitly means "no limit on body size". By default, Nginx sets the body at 1m, unless the directive is explicitly changed by the devs if they see that the 1m is not enough, and setting it to 0 to make things easy during development to bypass the `413 Request Entity Too Large` error, and then forgetting bringing it back down to a sane limit.
+
+The backend can compound the issue if it's reading the entire body into memory in one call with no streaming or size check.
+```py
+@app.route("/upload", methods=["POST", "PUT"])
+def upload():
+data = request.get_data() # buffers the ENTIRE body in memory
+with open(target_path, "wb") as f:
+f.write(data)
+```
+
+**Remidiation**
+Don't set `client_max_body_size` to 0, and make sure to rate limit requests to the endpoint:
+```nginx
+location /upload {
+  client_max_body_size 10m;
+  client_body_timeout 10s;
+  limit_req zone=upload_limit burst=5 nodelay;
+  proxy_pass http://flask:7000/upload;
+}
+limit_req_zone $binary_remote_addr zone=upload_limit:10m rate=1r/s;
+```
