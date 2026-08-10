@@ -197,6 +197,7 @@ We can fix all this by simply appending a trailing slash to the root location's 
 And always make sure that we don't trust the reverse proxy, and perform server-side validation at the app level regardless.
 
 ## 2. Authorizaion Bypass via Unvalidated Regex Capture in proxy_pass Hostname
+### Black-Box Discovery
 1. You notice an endpoint that appears to do generic backend routing, like the following:
   - `GET /matchall/status` => you get a status page
   - `GET /matchall/changelog` => you get a changelog page
@@ -205,8 +206,44 @@ And always make sure that we don't trust the reverse proxy, and perform server-s
   - `GET /matchall/changelog` => `http://flask/changelog`
 3. To detetct and verify this from a black-box perspective, let's first send a request to just `GET /matchall` or `GET /matchall/`
 <img width="1727" height="724" alt="image" src="https://github.com/user-attachments/assets/f4038bad-4fdb-4d35-9165-7b836b3b78f1" />
-We can conclude that the application is doing just that, taking whatever comes after `/matchall` and passing it to the upstream backend.
+Then, we send a request to `/status` instead of `/matchall/status` and `/changelog` instead of `/matchall/changelog`, and if we see the same exact responses, that confirms the bug.
+<img width="2158" height="723" alt="image" src="https://github.com/user-attachments/assets/4fa101c4-59eb-42c9-a14a-86ecc89587a1" />
+Indeed, we can conclude that the application is doing just that, taking whatever comes after `/matchall` and passing it to the upstream backend.
 4. This means that we can control whatever the proxy requests from the upstream? Exactly, and let's verify by trying to access a path that we normally return 403.
 <img width="2158" height="294" alt="image" src="https://github.com/user-attachments/assets/a17b6152-fb52-4927-bd06-e9c7f24b6564" />
 <img width="2158" height="696" alt="image" src="https://github.com/user-attachments/assets/5a3fc304-a4f8-4042-86cf-354e34d39889" />
 **NICE**
+
+**Impact:** Unauthorized access to protected resources.
+
+### White-Box Root Cause
+```
+location ~ /matchall(.*) {
+  proxy_pass http://flask:7000/$1;
+  proxy_redirect off;
+}
+```
+`$1` is the regex capture, everything after `/matchall` is the request is fully attacker-controlled, and it's directly concatenated onto the upstream uri.
+Although there are already access controls to protect the privileged paths:
+```
+location = /admin {
+    deny all;
+}
+
+location = /admin/ {
+    deny all;
+}
+
+location ~ ^/(secret|private|topsecret) {
+  deny all;
+}
+```
+But that's entirely bypassed and never reached by the client request. The client request only matches `location ~ /matchall(.*)` and never `location ~ ^/(secret|private|topsecret)` or any other location block intended to protect against unauthorized access.
+
+**Remidiation**
+Add a new deny list to deny any requests trying to access the sensitive pages through the `/matchall` route.
+```
+location ~ ^/matchall/(admin(?:/|$)|secret(?:/|$)|private(?:/|$)|topsecret(?:/|$)) {
+    deny all;
+}
+```
