@@ -180,12 +180,13 @@ location /en-us/ {
 }
 ```
 
-## 1. Access Control Bypass via Trim Inconsistencies
+## 2. Access Control Bypass via Trim Inconsistencies
 ### Black-Box Discovery
 You did your fuzzing, and found a some paths that return `403`, if the bypass in finding #1 did not help you bypass the `403`, a misconfigured Nginx proxy can offer you another change to conduct a bypass.
 1. You want to bypass the 403 given by `/admin`
 2. Try to find any clues that leak which framework is running the target backend application (Flask, NodeJS, SpringBoot, Laravel...)
 3. Fingerprinting the backend framework is good, but it's not mandatory, it just help you focus of the bypasses available for that exact framework, in our case the backend is application running Flask (you can determine this using many techniques, the one I usually use is find an endpoint that the app uses to serve me a file's content, and replace that with a file that does not exist and watch the response to the GET request). For Flask this table will help us:
+
 | Nginx Version | Flask Bypass Characters |
 |---|---|
 | 1.22.0 | `\x85`, `\xA0` |
@@ -234,6 +235,7 @@ location /admin {
 ```
 
 **Bypass codes for other backend frameworks:**
+
 | Nginx Version | Node.js Bypass Characters |
 |---|---|
 | 1.22.0 | `\xA0` |
@@ -250,7 +252,7 @@ location /admin {
 | 1.18.0 | `\x09`, `;` |
 | 1.16.1 | `\x09`, `;` |
 
-## 2. Path Traversal / LFI via Root proxy_pass Without Upstream URI
+## 3. Path Traversal / LFI via Root proxy_pass Without Upstream URI
 ### Black-Box Discovery
 While fuzzing, or by viewing HTML page source code you get a `200 OK` response for the request `GET /assets/README.txt`, or `GET /assets/cat.jpeg`. These types of directories that server static files are the best candidate to test for LFI and path traversal. The detection goes like this:
 
@@ -320,7 +322,7 @@ We can fix all this by simply appending a trailing slash to the root location's 
 <img width="1727" height="556" alt="image" src="https://github.com/user-attachments/assets/6b4f5d18-624c-4d28-b14c-57206194fd63" />
 And always make sure that we don't trust the reverse proxy, and perform server-side validation at the app level regardless.
 
-## 3. Authorizaion Bypass via Unvalidated Regex Capture in proxy_pass
+## 4. Authorizaion Bypass via Unvalidated Regex Capture in proxy_pass
 ### Black-Box Discovery
 1. You notice an endpoint that appears to do generic backend routing, like the following:
   - `GET /matchall/status` => you get a status page
@@ -372,7 +374,7 @@ location ~ ^/matchall/(admin(?:/|$)|secret(?:/|$)|private(?:/|$)|topsecret(?:/|$
 }
 ```
 
-## 4. IP Spoofing via Missing proxy_set_header Inheritance
+## 5. IP Spoofing via Missing proxy_set_header Inheritance
 ### Black-Box Discovery
 1. Doing fuzzing you notice that `/internal/debug` returns `403`
 2. Add a forged [`X-Forwarded-For`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/X-Forwarded-For) or `X-Real-IP` header claiming an internal address:
@@ -479,7 +481,7 @@ real_ip_header X-Forwarded-For;
 real_ip_recursive on;
 ```
 
-## 5. Denial of Service via Unbounded Request Body
+## 6. Denial of Service via Unbounded Request Body
 ### Black-Box Discovery
 You come across a file upload endpoint, among all the impacts you may aim for is DoS, which in case a misconfigured reverse proxy can be done through uploading extremely large data streams.
 1. Upload a small file to get an idea of how the endpoint responds normally
