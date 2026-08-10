@@ -126,7 +126,58 @@ Only going through the black-box is generally enough if you your work does not i
 This is the main domain (set via the `default_server` directive in the nginx confi file), and it's what we as pentesters or bug bounty hunters don't usually spend much time navigating through, it's a boring status page!
 <img width="2147" height="1389" alt="image" src="https://github.com/user-attachments/assets/6d45a19e-46c8-466f-95b9-ae1b8e3fab96" />
 
-## 1. Path Traversal / LFI via Root proxy_pass Without Upstream URI
+## 1. Access Control Bypass via a Permissive Alternate Root
+### Black-Box Discovery
+1. Doing fuzzing you stumble upon some paths that reutrn `403`, like the following:
+```
+GET /secret -> 403
+GET /admin -> 403
+GET /private -> 403
+GET /topsecret -> 403
+```
+2. While browsing the application, you notice that multiple requests seem to always append a prefix to whatever path they aim to access, like:
+```
+GET /en-us/status
+GET /en-us/public
+```
+3. This prefix can be your friend in bypassing those `403`s, just append it to them too!
+<img width="2159" height="328" alt="image" src="https://github.com/user-attachments/assets/d47f6ec9-cc39-48ed-9731-af58b04c9b6d" />
+<img width="2159" height="694" alt="image" src="https://github.com/user-attachments/assets/4e0a0a05-5b87-4045-9a78-addaa0c0807d" />
+**NICE**
+
+### White-Box Root Cause
+A server block can define two locations to ac as the root of the same backend upstream, in this case, whether you send a request to `/` or `/en-us`, they both lend exacly at the same route (function) at the application level.
+```nginx
+location / {
+  proxy_pass http://flask:7000;
+  proxy_http_version 1.1;
+  proxy_set_header Upgrade $http_upgrade;
+  proxy_set_header Connection 'upgrade';
+  proxy_cache_bypass $http_upgrade;
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+}
+
+# Alternative root, with http 1.0, and connetion "close"
+location /en-us/ {
+  proxy_pass http://flask:7000/; # trailing slash is added so the request to upstream goes to / and not append /en-us
+  proxy_http_version 1.0;
+  proxy_set_header Connection 'close';
+}
+```
+Per-path deny rules provide no real coverage once any other location the same backend's full route surface; the entire model of individually blocking known sensitive paths is defeated when defining an alternate entry point.
+
+**Impact:** Access controls bypass via alternate entry point.
+
+**Remidiation"**
+Deny-list at the alternate root's location block too:
+```
+location /en-us/ {
+  location ~ ^/en-us/(secret|private|topsecret|admin) { deny all; }
+  proxy_pass http://flask:7000/;
+}
+```
+
+## 2. Path Traversal / LFI via Root proxy_pass Without Upstream URI
 ### Black-Box Discovery
 While fuzzing, or by viewing HTML page source code you get a `200 OK` response for the request `GET /assets/README.txt`, or `GET /assets/cat.jpeg`. These types of directories that server static files are the best candidate to test for LFI and path traversal. The detection goes like this:
 
@@ -196,7 +247,7 @@ We can fix all this by simply appending a trailing slash to the root location's 
 <img width="1727" height="556" alt="image" src="https://github.com/user-attachments/assets/6b4f5d18-624c-4d28-b14c-57206194fd63" />
 And always make sure that we don't trust the reverse proxy, and perform server-side validation at the app level regardless.
 
-## 2. Authorizaion Bypass via Unvalidated Regex Capture in proxy_pass
+## 3. Authorizaion Bypass via Unvalidated Regex Capture in proxy_pass
 ### Black-Box Discovery
 1. You notice an endpoint that appears to do generic backend routing, like the following:
   - `GET /matchall/status` => you get a status page
@@ -248,7 +299,7 @@ location ~ ^/matchall/(admin(?:/|$)|secret(?:/|$)|private(?:/|$)|topsecret(?:/|$
 }
 ```
 
-## 3. IP Spoofing via Missing proxy_set_header Inheritance
+## 4. IP Spoofing via Missing proxy_set_header Inheritance
 ### Black-Box Discovery
 1. Doing fuzzing you notice that `/internal/debug` returns `403`
 2. Add a forged [`X-Forwarded-For`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/X-Forwarded-For) or `X-Real-IP` header claiming an internal address:
