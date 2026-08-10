@@ -174,7 +174,7 @@ Per-path deny rules provide no real coverage once any other location the same ba
 
 **Remidiation"**
 Deny-list at the alternate root's location block too:
-```
+```nginx
 location /en-us/ {
   location ~ ^/en-us/(secret|private|topsecret|admin) { deny all; }
   proxy_pass http://flask:7000/;
