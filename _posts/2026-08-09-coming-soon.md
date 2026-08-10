@@ -95,7 +95,7 @@ Only going through the black-box is generally enough if you your work does not i
 
 ## 3.2 Finding List: What We Will Go Through?
 ### 3.2.1 portal.skyblue.com
-1. Path Traversal / LFI via Root proxy_pass With Slash Prefix and URI
+1. Path Traversal / LFI via Root proxy_pass With Slash Prefix and Upstream URI
 2. SSRF via Unvalidated Regex Capture in proxy_pass Hostname
 3. IP Spoofing via Missing proxy_set_header Inheritance
 4. Authentication Bypass by Cookie Replay (Static Session Token via auth_request)
@@ -123,24 +123,40 @@ Only going through the black-box is generally enough if you your work does not i
 ---
 
 # Findings: portal.skyblue.com
-## 1. Path Traversal / LFI via Root proxy_pass With Slash Prefix and URI
+## 1. Path Traversal / LFI via Root proxy_pass With Slash Prefix and Upstream URI
 While fuzzing, or by viewing HTML page source code you get a `200 OK` response for the request `GET /assets/README.txt`, or `GET /assets/cat.jpeg`. These types of directories that server static files are the best candidate to test for LFI and path traversal. The detection goes like this:
 
 1. You find a valid URL that serves a static file, now there is potential for information disclosure by replacing the correct file with a random file, like so `GET /assets/anything`, this might return an unintended response that leaks the current directory being used to host and serve the static files (the error depends on the application stack used in the backend, in our case the response is coming from a Flask application).
 <img width="1293" height="664" alt="image" src="https://github.com/user-attachments/assets/6ac9b150-0d93-4a0b-a588-549b45e7a4cc" />
-
 <img width="1025" height="136" alt="image" src="https://github.com/user-attachments/assets/0a79b2ca-1ee6-47a0-b213-ad4d156d3dc5" />
-
 This gives us a better vision of where we are, and an easy way to brute force for any potentially sensitive files under this dir if we want to go in that route.
-
-3. Now, to the juicy stuff, fire up your favorite proxy. To traverse up out the static file dir, we use the good old `../`, and same as above, the backend application can give us more than we should get. As shown in the screenshot below, we see that Flask by default is verbose, we can easily tell if the dir exists or not, which makes it so easy for brute-forcing a valid dir.
-
+2. Now, to the juicy stuff, fire up your favorite proxy. To traverse up out the static files dir, we use the good old `../`, and same as above, the backend application can give us more than we should get. As shown in the screenshot below, we see that Flask by default is verbose, we can easily tell if the dir exists or not, which makes it so easy for brute-forcing a valid dir.
 <img width="1724" height="367" alt="image" src="https://github.com/user-attachments/assets/89694d91-a69e-47ab-9a23-83abab53ca39" />
-
 <img width="1724" height="367" alt="image" src="https://github.com/user-attachments/assets/464154a8-bfa9-49ee-8d22-c253ac7936de" />
-
 Notice the difference in response, the first tells us that there is no such resource (not a file not a dir) names `foo`, but the second says something else; `Is a directory...`, meaning Flask is trying to open and read a dir, which cannot be done. So, that's a valid dir!
-
-4. Now, as a last step, we can fire Intruder or your favorite fuzzing tool to try and find files inside the `sensitive` directory.
-
+3. Now, as a last step, we can fire Intruder or your favorite fuzzing tool to try and find files inside the `sensitive` directory.
 <img width="1724" height="367" alt="image" src="https://github.com/user-attachments/assets/85bd7fe3-576c-4544-82f7-762ce1f0f3bb" />
+**NICE**
+
+Now you are thinking how is this very cliché bug even still relevant with all the security advancements we have made? A very innocent misconfiguration your sysadmin will push thinking it's too safe!
+```nginx
+location /assets/ {
+  proxy_pass http://flask:7000/assets/;
+}
+```
+The important part to notice here is the **trailing slash** in `proxy_pass`.
+NGINX replaces the matched `/assets/` prefix with the `/assets/` in `proxy_pass` and appends whatever comes after the matched `/assets/` into `proxy_pass` and it does not resolve the traversal before constructing the upstraem URI. The flow goes like this:
+```
+GET /assets/../sensitive/file.txt
+
+NGINX matches:
+    /assets/
+
+Then constructs the upstream path:
+    /assets/ + ../sensitive/file.txt
+
+Result:
+    /assets/../sensitive/file.txt => this goes as it is into proxy_pass
+```
+So the normalization is not happening at the proxy level, but at the upstream Flask application level.
+However, if the normalization happened at Nginx, the request wouldn't match the location `/assets/` at all, and otherwise would be seen as `/sensitive/file.txt` and as there is no such location in the proxy, the attacker would have gotten a good `404`.
