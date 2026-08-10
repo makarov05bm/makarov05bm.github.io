@@ -146,7 +146,7 @@ GET /en-us/public
 **NICE**
 
 ### White-Box Root Cause
-A server block can define two locations to act as the root of the same backend upstream, in this case, whether you send a request to `/` or `/en-us`, they both lend exacly at the same route (function) at the application level.
+A server block can define two locations to act as the root of the same backend upstream, in this case, whether you send a request to `/` or `/en-us`, they both land exacly at the same route (function) at the application level.
 ```nginx
 location / {
   proxy_pass http://flask:7000;
@@ -162,6 +162,10 @@ location /en-us/ {
   proxy_pass http://flask:7000/; # trailing slash is added so the request to upstream goes to / and not append /en-us
   proxy_http_version 1.0;
   proxy_set_header Connection 'close';
+}
+
+location ~ ^/(secret|private|topsecret) {
+  deny all;
 }
 ```
 Per-path deny rules provide no real coverage once any other location the same backend's full route surface; the entire model of individually blocking known sensitive paths is defeated when defining an alternate entry point.
