@@ -95,16 +95,16 @@ Only going through the black-box is generally enough if you your work does not i
 
 ## 3.2 Finding List: What We Will Go Through?
 ### 3.2.1 portal.skyblue.com
-1. Path Traversal / LFI via Root proxy_pass Without Upstream URI
-2. Authorizaion Bypass via Unvalidated Regex Capture in proxy_pass
-3. IP Spoofing via Missing proxy_set_header Inheritance
-4. Authentication Bypass by Cookie Replay (Static Session Token via auth_request)
-5. CORS Misconfiguration via Missing Regex Anchor
-6. Denial of Service via Unbounded Request Body
-7. Web Cache Deception via Extension-Based Cache Matching
-8. Open Redirect via User-Registerable Cloud Storage Bucket Name
-9. HTTP Response Splitting via Unsanitized Regex Capture
-10. Access Control Bypass via a Permissive Alternate Root
+1. Access Control Bypass via a Permissive Alternate Root
+2. Path Traversal / LFI via Root proxy_pass Without Upstream URI
+3. Authorizaion Bypass via Unvalidated Regex Capture in proxy_pass
+4. IP Spoofing via Missing proxy_set_header Inheritance
+5. Authentication Bypass by Cookie Replay (Static Session Token via auth_request)
+6. CORS Misconfiguration via Missing Regex Anchor
+7. Denial of Service via Unbounded Request Body
+8. Web Cache Deception via Extension-Based Cache Matching
+9. Open Redirect via User-Registerable Cloud Storage Bucket Name
+10. HTTP Response Splitting via Unsanitized Regex Capture
 11. Default-Allow Gap in the map Directive
 12. SSRF via Client-Controlled Host Header
 
@@ -180,6 +180,76 @@ location /en-us/ {
 }
 ```
 
+## 1. Access Control Bypass via Trim Inconsistencies
+### Black-Box Discovery
+You did your fuzzing, and found a some paths that return `403`, if the bypass in finding #1 did not help you bypass the `403`, a misconfigured Nginx proxy can offer you another change to conduct a bypass.
+1. You want to bypass the 403 given by `/admin`
+2. Try to find any clues that leak which framework is running the target backend application (Flask, NodeJS, SpringBoot, Laravel...)
+3. Fingerprinting the backend framework is good, but it's not mandatory, it just help you focus of the bypasses available for that exact framework, in our case the backend is application running Flask (you can determine this using many techniques, the one I usually use is find an endpoint that the app uses to serve me a file's content, and replace that with a file that does not exist and watch the response to the GET request). For Flask this table will help us:
+| Nginx Version | Flask Bypass Characters |
+|---|---|
+| 1.22.0 | `\x85`, `\xA0` |
+| 1.21.6 | `\x85`, `\xA0` |
+| 1.20.2 | `\x85`, `\xA0`, `\x1F`, `\x1E`, `\x1D`, `\x1C`, `\x0C`, `\x0B` |
+| 1.18.0 | `\x85`, `\xA0`, `\x1F`, `\x1E`, `\x1D`, `\x1C`, `\x0C`, `\x0B` |
+| 1.16.1 | `\x85`, `\xA0`, `\x1F`, `\x1E`, `\x1D`, `\x1C`, `\x0C`, `\x0B` |
+4. If you know the Nginx version used use a respective character, if you don't you can try all of them. To conduct the bypass, make sure to capture the request in Burp
+<img width="1727" height="379" alt="image" src="https://github.com/user-attachments/assets/e749c3f1-556e-4ac0-b6f5-74bef8012b99" />
+Now, add a `/` after `/admin`, and select the slash and from **Inspector** on the right, change its code to `85`
+<img width="2156" height="379" alt="Screenshot from 2026-08-10 23-40-48" src="https://github.com/user-attachments/assets/327fed88-1424-4edb-a4e8-55446330b749" />
+<img width="2156" height="379" alt="Screenshot from 2026-08-10 23-42-28" src="https://github.com/user-attachments/assets/77d22bcf-b820-4ed2-a32b-5fb234e93fd6" />
+Send the request and notice that we bypassed the `403`, we get "unauthenticated" and that's coming from the Flask backend, so, we've already went past Nginx, and that's what we care about here.
+<img width="1729" height="379" alt="image" src="https://github.com/user-attachments/assets/af9bb99d-b4f7-41a0-a41a-150362cd4489" />
+**NICE**
+
+**Impact:** Access controls bypass and access to sensitive privileged paths.
+
+### White-Box Root Cause
+In short, this technique works because there is a discrepancy between the Nginx proxy and the Flask backend, where Nginx would essentially keep certain character in the uri, while the backend app would remove those characters, which in many cases leads to broken access conrols.
+
+This is the vulnerable code in our configuration:
+```nginx
+location = /admin {
+    deny all;
+}
+
+location = /admin/ {
+    deny all;
+}
+```
+`=` is basically an exact match, so the request uri has to be EXACLY `/admin` nothing more nothing else. Any additional character will make the request be matched by the `/` location block, which routes whatever it gets as it is to the backend. so appending `\x85` after `/admin`, or `/admin/` will not be matched against neither of the above two location blocks, and would instead be matched against:
+```nginx
+location / {
+  proxy_pass http://flask:7000;
+}
+```
+And you can see that it sends everything in the uri to the backend, meaning `/admin\x85` will go to `http://flask:7000/admin\x85`, as Nginx doesn't trim `\x85` and a few other characters. Then, when Flask receives the request, it automatically trims the `\x85`, which means the request will be routed to `/admin` at the application level.
+
+**Remidiation:**
+Avoid using exact location matching:
+```nginx
+location /admin {
+    deny all;
+}
+```
+
+**Bypass codes for other backend frameworks:**
+| Nginx Version | Node.js Bypass Characters |
+|---|---|
+| 1.22.0 | `\xA0` |
+| 1.21.6 | `\xA0` |
+| 1.20.2 | `\xA0`, `\x09`, `\x0C` |
+| 1.18.0 | `\xA0`, `\x09`, `\x0C` |
+| 1.16.1 | `\xA0`, `\x09`, `\x0C` |
+
+| Nginx Version | Spring Boot Bypass Characters |
+|---|---|
+| 1.22.0 | `;` |
+| 1.21.6 | `;` |
+| 1.20.2 | `\x09`, `;` |
+| 1.18.0 | `\x09`, `;` |
+| 1.16.1 | `\x09`, `;` |
+
 ## 2. Path Traversal / LFI via Root proxy_pass Without Upstream URI
 ### Black-Box Discovery
 While fuzzing, or by viewing HTML page source code you get a `200 OK` response for the request `GET /assets/README.txt`, or `GET /assets/cat.jpeg`. These types of directories that server static files are the best candidate to test for LFI and path traversal. The detection goes like this:
@@ -194,7 +264,7 @@ This gives us a better vision of where we are, and an easy way to brute force fo
 Notice the difference in response, the first tells us that there is no such resource (not a file not a dir) names `foo`, but the second says something else; `Is a directory...`, meaning Flask is trying to open and read a dir, which cannot be done. So, that's a valid dir!
 3. Now, as a last step, we can fire Intruder or your favorite fuzzing tool to try and find files inside the `sensitive` directory.
 <img width="1724" height="367" alt="image" src="https://github.com/user-attachments/assets/85bd7fe3-576c-4544-82f7-762ce1f0f3bb" />
-4. Sometimes, there is no need to even look for a dir, the dir above the current dir can hold some important files, such as source code files.
+4. Sometimes, there is no need to even look for a dir, the dir above the current dir can hold some important files, sus3/ne-1/assets-111111111111/logo.pngch as source code files.
 <img width="1727" height="1157" alt="image" src="https://github.com/user-attachments/assets/9a0f7982-2df2-44d1-9d5b-39ee6c6b9d7d" />
 
 **NICE**
