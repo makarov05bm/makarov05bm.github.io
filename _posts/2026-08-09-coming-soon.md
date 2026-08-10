@@ -94,7 +94,7 @@ Every finding below is presented twice. The black-box section describes what a t
 Only going through the black-box is generally enough if you your work does not involve doing code review, however it's still a good skill to have as it builds the deeper skill; recognizing patters and imagining how the proxy is configured without having actual access to the config file.
 
 ## 3.2 Finding List: What We Will Go Through?
-### portal.skyblue.com
+### 3.2.1 portal.skyblue.com
 1. Path Traversal / LFI via Root proxy_pass Without a URI
 2. SSRF via Unvalidated Regex Capture in proxy_pass Hostname
 3. IP Spoofing via Missing proxy_set_header Inheritance
@@ -109,13 +109,16 @@ Only going through the black-box is generally enough if you your work does not i
 12. Default-Allow Gap in the map Directive
 13. Open Redirect / SSRF via Client-Controlled Host Header
 
-### sandbox-dev-001.skyblue.com
+### 3.2.2 sandbox-dev-001.skyblue.com
 1. Location Match-Priority Bypass via ^~ Overriding a Regex deny Rule
 2. Stored XSS via Unescaped Log Injection
 3. Information Disclosure via Exposed stub_status
 
-### sandbox-dev-002.skyblue.com
+### 3.2.3 sandbox-dev-002.skyblue.com
 1. Open Redirect via Missing Leading Slash in a Rewrite Capture Group
 2. Access Control Inconsistency - auth_basic Not Inherited by a More-Specific Location
 3. Credential Brute-Force via Missing Rate Limiting on Basic Auth
 4. Authentication Bypass via satisfy any and a Broken IP Trust Boundary
+
+---
+
