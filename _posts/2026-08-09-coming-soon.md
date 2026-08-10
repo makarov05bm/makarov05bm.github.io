@@ -194,7 +194,7 @@ You did your fuzzing, and found a some paths that return `403`, if the bypass in
 | 1.20.2 | `\x85`, `\xA0`, `\x1F`, `\x1E`, `\x1D`, `\x1C`, `\x0C`, `\x0B` |
 | 1.18.0 | `\x85`, `\xA0`, `\x1F`, `\x1E`, `\x1D`, `\x1C`, `\x0C`, `\x0B` |
 | 1.16.1 | `\x85`, `\xA0`, `\x1F`, `\x1E`, `\x1D`, `\x1C`, `\x0C`, `\x0B` |
-4. If you know the Nginx version used use a respective character, if you don't you can try all of them. To conduct the bypass, make sure to capture the request in Burp
+4. If you know the Nginx version used use a respective character, if you don't you can try all of them (in our lab, the proxy is running `nginx/1.31.3`). To conduct the bypass, make sure to capture the request in Burp
 <img width="1727" height="379" alt="image" src="https://github.com/user-attachments/assets/e749c3f1-556e-4ac0-b6f5-74bef8012b99" />
 Now, add a `/` after `/admin`, and select the slash and from **Inspector** on the right, change its code to `85`
 <img width="2156" height="379" alt="Screenshot from 2026-08-10 23-40-48" src="https://github.com/user-attachments/assets/327fed88-1424-4edb-a4e8-55446330b749" />
