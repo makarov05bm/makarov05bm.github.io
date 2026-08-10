@@ -258,7 +258,7 @@ Host: portal.skyblue.com:8080
 X-Forwarded-For: 10.1.1.1
 ```
 3. If this return `200`, this means one of the three:
-   - The reverse proxy blindly trusts the header
+   - IP checking is only done at the proxy level and the proxy blindly trusts the header
    - The reverse proxy is not passing the `X-Forwarded-For` header to the backend
    - The backend is accessing the wrong `X-Forwarded-For` value in the list
 
