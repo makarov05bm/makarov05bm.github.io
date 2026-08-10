@@ -506,7 +506,7 @@ If the response is a redirect to:
 ```
 https://s3-ap-northeast-1.amazonaws.com/skyblue-assets111111111111/logo.png
 ```
-Then, you got a confirmed bug and you now you should register the bucket `skyblue-assets-111111111111` and host an HTML page there.
+Then, you got a confirmed bug and you now you should register the bucket `skyblue-assets111111111111` and host an HTML page there.
 <img width="1727" height="688" alt="image" src="https://github.com/user-attachments/assets/ad1604c2-e5b7-48ab-83ad-dea4b67f3ed9" />
 
 **Impact:** Phishing via a trusted-domain redirect chain, compounded by 30-minute cache poisoning of the redirect target for any visitor requesting the same crafted number.
