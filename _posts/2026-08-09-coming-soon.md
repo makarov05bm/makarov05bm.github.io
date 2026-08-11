@@ -819,3 +819,12 @@ And it's worth noting that the technique we showed in the black-box discovery se
   - `proxy_cache_bypass`: if the request carries a cookie or auth header, never read from the cache, always go to backend fresh
 
 Together these mean that even a genuinely static-looking URL under /static can never be poisoned by an authenticated user (victim in case of attack), and an authenticated user can never receive someone else's cached data
+
+---
+
+## Findings: sandbox-dev-001.skyblue.com
+This vhost presents just the default Nginx index page, and we need to go from just that to real hacker mode! No buttons, no fancy UI, just like we see everyday everywhere
+<img width="2162" height="484" alt="image" src="https://github.com/user-attachments/assets/14baa0c9-96a6-4fc1-9960-32b929fa4b6e" />
+
+### 12. Location Match-Priority Bypass via ^~ Overriding a Regex deny Rule
+#### Black-Box Discovery
