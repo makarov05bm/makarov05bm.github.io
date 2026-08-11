@@ -765,8 +765,6 @@ location /preview-link {
 
 **PS:** to login as the victim admin, there is a specific endpoint that can be found through fuzzing
 
-<img width="1733" height="363" alt="image" src="https://github.com/user-attachments/assets/3e0061b9-5661-4fd2-ae4c-7bab3a99cd9b" />
-
 **Impact:** sensitive per-user data becomes retrievable by any anonymous visitor as long as the cache key entry lives, triggered simple by luring an authenticated user to a crafted link.
 
 #### White-Box Root Cause
