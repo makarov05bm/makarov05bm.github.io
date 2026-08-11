@@ -761,6 +761,7 @@ location /preview-link {
        - In this case, proceed to add a static extension, and watch if the response includes a cache header: `/account/session/foo.css` --> 401 with header `X-Cache-Status`
        - Even if the value of `X-Cache-Status` is `MISS` in the above test, that doesn't mean that the endpoint will not get cached, what matters in the detection phase is that there is a cache header in the response, and the caching period is long enough (however in case of a very sensitive endpoint like he one we are testing, even caching for a few minutes is very impactful)
     - Another technique is appending a query param that ends with a static extension: `/account/session?foo=bar.js`
+<img width="1733" height="363" alt="image" src="https://github.com/user-attachments/assets/45c0323d-3fbb-4825-babb-80621ffcadc6" />
 2. To exploit, send the crafted URL to a privileged admin, and periodically check the same URL from your own browser so that when the victim visits it and it gets cached you will access the admin's sensitive session data
 
 **PS:** to login as the victim admin, there is a specific endpoint that can be found through fuzzing
