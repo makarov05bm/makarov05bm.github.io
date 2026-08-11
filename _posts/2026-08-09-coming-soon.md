@@ -700,7 +700,7 @@ Another thing to mention here, is that a missing default value can cause bugs ev
 Add a default entry to be the default value for anything not matching a key in the map:
 ```nginx
 map $uri $mappocallow {
-   default 0;
+  default 0;
   /map-poc/private   0;
   /map-poc/secret     0;
   /map-poc/public     1;
