@@ -125,7 +125,7 @@ Only going through the black-box is generally enough if you your work does not i
 This is the main domain (set via the `default_server` directive in the nginx confi file), and it's what we as pentesters or bug bounty hunters don't usually spend much time navigating through, it's a boring status page!
 <img width="2147" height="1389" alt="image" src="https://github.com/user-attachments/assets/6d45a19e-46c8-466f-95b9-ae1b8e3fab96" />
 
-## 1. Access Control Bypass via a Permissive Alternate Root
+## 1. Authorization Bypass via a Permissive Alternate Root
 ### Black-Box Discovery
 1. Doing fuzzing you stumble upon some paths that reutrn `403`, like the following:
 ```
@@ -180,7 +180,7 @@ location /en-us/ {
 }
 ```
 
-## 2. Access Control Bypass via Trim Inconsistencies
+## 2. Broken Access Control via Trim Inconsistencies
 ### Black-Box Discovery
 You did your fuzzing, and found a some paths that return `403`, if the bypass in finding #1 did not help you bypass the `403`, a misconfigured Nginx proxy can offer you another change to conduct a bypass.
 1. You want to bypass the 403 given by `/admin`
@@ -648,3 +648,61 @@ Use a fixed, single bucket name with the identifier only in the path, never in t
 return 301 https://s3-ap-northeast-1.amazonaws.com/skyblue-assets/$1/$2;
 ```
 
+## 10. Access Control Bypass due to Default-Allow Gap in the map Directive and merge_slashes=off
+### Black-Box Discovery
+1. You notice a set of endpoints that all share a prefix, and they seem to be privileged, and return `403`:
+```
+GET /map-poc/private -> 403
+GET /map-poc/secret -> 403
+GET /map-poc/topsecret -> 403
+```
+2. Think of a map directive is used in the proxy configuration, and these maps are usually bypassable if two conditions are present:
+  - the `map` directive misses a default entry
+  - `merge_slashes` is disabled at the server
+3. You can easily test that by only adding extra slashes:
+```
+GET GET /map-poc/////private
+```
+
+<img width="1721" height="806" alt="image" src="https://github.com/user-attachments/assets/63b00825-ab32-483c-8278-29e5c0ff4d7f" />
+<img width="1721" height="684" alt="image" src="https://github.com/user-attachments/assets/3b0b05f4-dcef-4cfb-bfff-2cb607d01845" />
+
+Something worth noting, by sending a request to a random value after the shared prefix, like `GET /map-poc/foobar` you can tell if the proxy's `map` has a default entry or not. If it gives `403` for any random value after the prefix, this ascetain you that there is a default entry that rejects any value not present in the map, however, if it gives you `404` this means there is a chance that the map is missing a default entry. We will see this in more detail just below.
+
+<img width="1723" height="786" alt="image" src="https://github.com/user-attachments/assets/e50b369e-f526-40a6-b30c-4f633074fbb8" />
+<img width="1723" height="397" alt="image" src="https://github.com/user-attachments/assets/eedfe600-571c-4da0-94b8-c257de64e8b7" />
+*404 Error returned by an NGINX custom page*
+
+### White-Box Root Cause
+```nginx
+map $uri $mappocallow {
+  /map-poc/private   0;
+  /map-poc/secret     0;
+  /map-poc/public     1;
+}
+
+server {
+  merge_slashes off;
+
+  location /map-poc/ {
+    if ($mappocallow = 0) {return 403;}
+  
+    proxy_pass http://flask:7000/;
+  }
+}
+```
+
+Without a default entry, the `map` directive returns an EMPTY STRING for any `$uri` that does not match a listed key; not `0`, and not an error, but just a literal `""`. The check `if ($mappocallow = 0)` only blocks the value `0` specifically; an empty string does not satisfy that comparison, so any unlisted URI silently passes through unblocked. Compounding this, `merge_slashes off` means `/map-poc//private` with two or more slashes also does not match the literal key `/map-poc/private`, producing the empty-string bypass.
+
+Another thing to mention here, is that a missing default value can cause bugs even if `merge_slashes` was activated, in case developers add a sensitive path in the backend application like `/map-poc/vip` but forget to add it to the `map` at the proxy level thinking it's properly gated like the others in the map.
+
+**Remidiation:**
+Add a default entry to be the default value for anything not matching a key in the map:
+```nginx
+map $uri $mappocallow {
+   default 0;
+  /map-poc/private   0;
+  /map-poc/secret     0;
+  /map-poc/public     1;
+}
+```
