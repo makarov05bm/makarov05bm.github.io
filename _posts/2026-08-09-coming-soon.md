@@ -1,6 +1,6 @@
-<img width="1727" height="1103" alt="image" src="https://github.com/user-attachments/assets/1eb88c1b-33a8-4584-a5f6-1315498440a7" /><img width="1727" height="1103" alt="image" src="https://github.com/user-attachments/assets/481219a1-356b-424c-93bf-cfe2de6c4fc1" />---
+---
 layout: post
-title: "Comig soon, keep an eye!"
+title: "Damn Vulnerable NGINX Proxy Full Guide"
 date: 2026-08-09 08:00:00 +0100
 categories: [Web Securiy, Nginx, Proxy]
 tags: [AppSec, Pentest, NGINX, Reverse Proxy]
