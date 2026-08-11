@@ -6,6 +6,8 @@ categories: [Web Securiy, Nginx, Proxy]
 tags: [AppSec, Pentest, NGINX, Reverse Proxy]
 ---
 
+**DISCLAIMER:** Zero AI was used to write this blog, appreciate it? I know, you are welcome ;)
+
 # 1. Introduction
 ## What is Nginx, and Why Does it Matter?
 Nginx is the most widely deployed reverse proxy in the world, powering roughly a third of all websites. And, as pentesters, bug bounty hunters or even security analysts we almost always come across it used as a load balancer, reverse proxy, or a simple server when doing engagements. Also, if you do configuration security reviews, you will need to have a good grasp of the common misconfigurations as well as some novel techniques usually weaponized by adversaries to bypass what looks seemingly secure.
