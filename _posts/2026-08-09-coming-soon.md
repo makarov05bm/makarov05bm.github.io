@@ -1,4 +1,4 @@
----
+<img width="1723" height="693" alt="image" src="https://github.com/user-attachments/assets/2d80802d-a45d-45c0-a92b-fdfdde7280fc" /><img width="1721" height="810" alt="image" src="https://github.com/user-attachments/assets/39576b1e-b73d-40f5-b945-26c20cc97f37" /><img width="1721" height="682" alt="Screenshot from 2026-08-11 08-50-47" src="https://github.com/user-attachments/assets/3643929b-88a0-4945-b42f-dc278b99ffe6" />---
 layout: post
 title: "Comig soon, keep an eye!"
 date: 2026-08-09 08:00:00 +0100
@@ -189,12 +189,12 @@ You did your fuzzing, and found a some paths that return `403`, if the bypass in
 2. Try to find any clues that leak which framework is running the target backend application (Flask, NodeJS, SpringBoot, Laravel...)
 3. Fingerprinting the backend framework is good, but it's not mandatory, it just help you focus of the bypasses available for that exact framework, in our case the backend is application running Flask (you can determine this using many techniques, the one I usually use is find an endpoint that the app uses to serve me a file's content, and replace that with a file that does not exist and watch the response to the GET request). Find at the end of this section a table containing all possible bypass characters
 4. If you know the Nginx version used use a respective character, if you don't you can try all of them (in our lab, the proxy is running `nginx/1.31.3`). To conduct the bypass, make sure to capture the request in Burp
-<img width="1727" height="379" alt="image" src="https://github.com/user-attachments/assets/e749c3f1-556e-4ac0-b6f5-74bef8012b99" />
+<img width="1723" height="367" alt="image" src="https://github.com/user-attachments/assets/849a2808-2ce6-4352-aa60-52cb63a353be" />
 Now, add a `/` after `/admin`, and select the slash and from **Inspector** on the right, change its code to `85`
-<img width="2156" height="379" alt="Screenshot from 2026-08-10 23-40-48" src="https://github.com/user-attachments/assets/327fed88-1424-4edb-a4e8-55446330b749" />
-<img width="2156" height="379" alt="Screenshot from 2026-08-10 23-42-28" src="https://github.com/user-attachments/assets/77d22bcf-b820-4ed2-a32b-5fb234e93fd6" />
+<img width="2146" height="370" alt="Screenshot from 2026-08-11 08-42-53" src="https://github.com/user-attachments/assets/1e0de642-dc78-4ad5-b22b-29331b200a0a" />
+<img width="2146" height="382" alt="Screenshot from 2026-08-11 08-44-24" src="https://github.com/user-attachments/assets/22de283d-3330-4b81-9aaa-03ef546c12c6" />
 Send the request and notice that we bypassed the `403`, we get "unauthenticated" and that's coming from the Flask backend, so, we've already went past Nginx, and that's what we care about here.
-<img width="1729" height="379" alt="image" src="https://github.com/user-attachments/assets/af9bb99d-b4f7-41a0-a41a-150362cd4489" />
+<img width="1721" height="382" alt="image" src="https://github.com/user-attachments/assets/de8d7b0a-d6d4-4923-800c-1d8f3139439d" />
 **NICE**
 
 **Impact:** Access controls bypass and access to sensitive privileged paths.
@@ -275,7 +275,7 @@ Host: original-bucket
 ```
 
 Which will redirect `/original-bucket/phish.html` to your bucket, so all you have to do is host `phish.html` inside a directory literally named as the name of the original bucket the proxy was requesting.
-<img width="1721" height="933" alt="untitled" src="https://github.com/user-attachments/assets/4c9944d6-045e-487e-97f0-067c6cb41482" />
+<img width="1721" height="954" alt="Screenshot from 2026-08-11 08-47-14" src="https://github.com/user-attachments/assets/dbd53302-55e6-4eae-aaf6-0b1437aa9824" />
 
 **Impact:** Redirect to malicious web pages, hosted on cloud storage buckets.
 
@@ -625,7 +625,7 @@ If the response is a redirect to:
 https://s3-ap-northeast-1.amazonaws.com/skyblue-assets111111111111/logo.png
 ```
 Then, you got a confirmed bug and you now you should register the bucket `skyblue-assets111111111111` and host an HTML page there.
-<img width="1727" height="688" alt="image" src="https://github.com/user-attachments/assets/ad1604c2-e5b7-48ab-83ad-dea4b67f3ed9" />
+<img width="1721" height="682" alt="Screenshot from 2026-08-11 08-50-47" src="https://github.com/user-attachments/assets/3ed4ab80-b4bf-4fd6-aec5-f2a25b7ecb91" />
 
 **Impact:** Phishing via a trusted-domain redirect chain, compounded by 30-minute cache poisoning of the redirect target for any visitor requesting the same crafted number.
 
@@ -666,13 +666,13 @@ GET /map-poc/topsecret -> 403
 GET GET /map-poc/////private
 ```
 
-<img width="1721" height="806" alt="image" src="https://github.com/user-attachments/assets/63b00825-ab32-483c-8278-29e5c0ff4d7f" />
-<img width="1721" height="684" alt="image" src="https://github.com/user-attachments/assets/3b0b05f4-dcef-4cfb-bfff-2cb607d01845" />
+<img width="1721" height="810" alt="image" src="https://github.com/user-attachments/assets/1ba9c085-181c-49cf-962c-3c526a3c9259" />
+<img width="1723" height="693" alt="image" src="https://github.com/user-attachments/assets/c14adb5b-57b4-4e8d-8c94-1cafa6d09629" />
 
 Something worth noting, by sending a request to a random value after the shared prefix, like `GET /map-poc/foobar` you can tell if the proxy's `map` has a default entry or not. If it gives `403` for any random value after the prefix, this ascetain you that there is a default entry that rejects any value not present in the map, however, if it gives you `404` this means there is a chance that the map is missing a default entry. We will see this in more detail just below.
 
-<img width="1723" height="786" alt="image" src="https://github.com/user-attachments/assets/e50b369e-f526-40a6-b30c-4f633074fbb8" />
-<img width="1723" height="397" alt="image" src="https://github.com/user-attachments/assets/eedfe600-571c-4da0-94b8-c257de64e8b7" />
+<img width="1721" height="810" alt="image" src="https://github.com/user-attachments/assets/1ba9c085-181c-49cf-962c-3c526a3c9259" />
+<img width="1723" height="364" alt="image" src="https://github.com/user-attachments/assets/c0452330-83b5-475c-a742-d7a9fff50fae" />
 *404 Error returned by an NGINX custom page*
 
 ### White-Box Root Cause
