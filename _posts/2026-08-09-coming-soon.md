@@ -727,7 +727,7 @@ We should tell which one is missing from the cache key, but from a black-box per
 <img width="2140" height="1260" alt="image" src="https://github.com/user-attachments/assets/d151a6dc-b6fc-42da-8340-8f9d57cf8459" />
 **NICE**
 
-### Black-Box Discovery
+### White-Box Root Cause
 ```nginx
 location /preview-link {
   proxy_pass http://flask:7000/preview-link;
