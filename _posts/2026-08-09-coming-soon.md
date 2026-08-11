@@ -10,28 +10,28 @@ This blog covers all misconfigurations present in the Damn Vulnerable Nginx Prox
 
 **DISCLAIMER:** Zero AI was used to write this blog, appreciate it? I know, you are welcome ;)
 
-# 1. Introduction
-## 1.1 What is Nginx, and Why Does it Matter?
+## 1. Introduction
+### 1.1 What is Nginx, and Why Does it Matter?
 Nginx is the most widely deployed reverse proxy in the world, powering roughly a third of all websites. And, as pentesters, bug bounty hunters or even security analysts we almost always come across it used as a load balancer, reverse proxy, or a simple server when doing engagements. Also, if you do configuration security reviews, you will need to have a good grasp of the common misconfigurations as well as some novel techniques usually weaponized by adversaries to bypass what looks seemingly secure.
 
 In a reverse-proxy role, Nginx sits in front of one or more backend applications, deciding which requests go where, applying access controls, caching responses, terminating TLS and rewriting URLs before they reach the application code behind it. This critical position is what makes Nginx misconfigurations so consequential. A bug in a backend application is usually confined to that application, however, a bug in the proxy level sitting in front of multiple application can easily and quickly enlarge the blast radius, often without the backend applications having any bugs of their own at all.
 
 Nginx configurations are full of directives whose exact semantics are easy to misjudge, whether a trailing slash strips a path prefix, whether one location's directive is inherited by another or not, whether a regex capture group is safe. None of these mistakes look wrong at a glance or a quick skim through the configuration code.
 
-## 1.2 Why a Deliberately Vulnerable Reverse-Proxy Lab
+### 1.2 Why a Deliberately Vulnerable Reverse-Proxy Lab
 Most available hands-on web security training focuses on the application layer bugs, however, the reverse-proxy level is comparatively under-served; it's covered essentially in write-ups and reference wikis, but rarely as something a learner can actually, run, break and fix end-to-end. While diving into Nginx security this last month, I didn't want to reinvent the wheel, and looked for already implemented vulnerable Nginx proxies, but all I found was projects that didn't showcase novel techniques that reflect latest research done on Nginx security, and for the most part, those project presented only one or two misconfigurations in the most direct way possible, which is too good to be true.
 
 Damn Vulnerable Nginx Proxy exists to close that gap. Every finding we discuss in the guide is reproducible against a real, running reverse proxy. And for the most learning outcome, several findings are not isolated bugs but chains taken directly from real world findings, previous and novel research.
 
 This blog walks through almost all twenty documented findings twice; first from black-box perspective; what an external attacker with no idea on the configuration would try, and what they would observe, and then from a white-box perspective, explaining precisely which misused directive or line of code caused the bad behavior.
 
-# 2. Lab Architecture
-## 2.1 Component Diagram
+## 2. Lab Architecture
+### 2.1 Component Diagram
 The lab run three containers behind a single published port. An Nginx reverse proxy terminates all inbount traffic on port 8080 and routes to two independent Flask backends based on which of the three virtual hosts a request targets.
 
 <img width="1598" height="984" alt="a0e809bb-9900-4751-b5f9-3e494abbf6ac" src="https://github.com/user-attachments/assets/d6c1c22c-acb9-41f6-9f68-5921234e8b30" />
 
-## 2.2 Project Structure
+### 2.2 Project Structure
 ```
 ├── app
 │   ├── app.py
@@ -91,14 +91,14 @@ The lab run three containers behind a single published port. An Nginx reverse pr
     └── product_list_2026.csv
 ```
 
-# 3. Methodology
-## 3.1 Black-Box vs White-Box Testing is this Guide
+## 3. Methodology
+### 3.1 Black-Box vs White-Box Testing is this Guide
 Every finding below is presented twice. The black-box section describes what a tester with no access to the configuration or source code would try, and what response would tip them off that something is wrong and worth digging down the rabbit hole. The white-box section then opens the configuration and application code and explains, directive by directive, exactly why the behavior happened.
 
 Only going through the black-box is generally enough if you your work does not involve doing code review, however it's still a good skill to have as it builds the deeper skill; recognizing patters and imagining how the proxy is configured without having actual access to the config file.
 
-## 3.2 Finding List: What We Will Go Through?
-### 3.2.1 portal.skyblue.com
+## 4 Finding List: What We Will Go Through?
+### 4.1 portal.skyblue.com
 1. Access Control Bypass via a Permissive Alternate Root
 2. Path Traversal / LFI via Root proxy_pass Without Upstream URI
 3. Authorizaion Bypass via Unvalidated Regex Capture in proxy_pass
@@ -112,12 +112,12 @@ Only going through the black-box is generally enough if you your work does not i
 11. Default-Allow Gap in the map Directive
 12. SSRF via Client-Controlled Host Header
 
-### 3.2.2 sandbox-dev-001.skyblue.com
+### 4.2 sandbox-dev-001.skyblue.com
 1. Location Match-Priority Bypass via ^~ Overriding a Regex deny Rule
 2. Stored XSS via Unescaped Log Injection
 3. Information Disclosure via Exposed stub_status
 
-### 3.2.3 sandbox-dev-002.skyblue.com
+### 4.3 sandbox-dev-002.skyblue.com
 1. Open Redirect via Missing Leading Slash in a Rewrite Capture Group
 2. Access Control Inconsistency - auth_basic Not Inherited by a More-Specific Location
 3. Credential Brute-Force via Missing Rate Limiting on Basic Auth
@@ -184,8 +184,8 @@ location /en-us/ {
 }
 ```
 
-## 2. Broken Access Control via Trim Inconsistencies
-### Black-Box Discovery
+### 2. Broken Access Control via Trim Inconsistencies
+#### Black-Box Discovery
 You did your fuzzing, and found a some paths that return `403`, if the bypass in finding #1 did not help you bypass the `403`, a misconfigured Nginx proxy can offer you another change to conduct a bypass.
 1. You want to bypass the 403 given by `/admin`
 2. Try to find any clues that leak which framework is running the target backend application (Flask, NodeJS, SpringBoot, Laravel...)
@@ -201,7 +201,7 @@ Send the request and notice that we bypassed the `403`, we get "unauthenticated"
 
 **Impact:** Access controls bypass and access to sensitive privileged paths.
 
-### White-Box Root Cause
+#### White-Box Root Cause
 In short, this technique works because there is a discrepancy between the Nginx proxy and the Flask backend, where Nginx would essentially keep certain character in the uri, while the backend app would remove those characters, which in many cases leads to broken access conrols.
 
 This is the vulnerable code in our configuration:
@@ -256,8 +256,8 @@ location /admin {
 | 1.18.0 | `\x09`, `;` |
 | 1.16.1 | `\x09`, `;` |
 
-## 3. HTTP Splitting via Unsanitized Regex Capture Leads to Open Redirect
-### Black-Box Discovery
+### 3. HTTP Splitting via Unsanitized Regex Capture Leads to Open Redirect
+#### Black-Box Discovery
 1. You identify an endpoint that seems to be fetching static assets from a bucket (S3, GCS...), immediately think of HTTP splitting
 ```
 GET /s3/static/js/admin.main.js
@@ -281,7 +281,7 @@ Which will redirect `/original-bucket/phish.html` to your bucket, so all you hav
 
 **Impact:** Redirect to malicious web pages, hosted on cloud storage buckets.
 
-### White-Box Root Cause
+#### White-Box Root Cause
 
 ```nginx
 location ~ /s3/static/([^/]*/[^/]*)? {
@@ -301,8 +301,8 @@ location ~ /s3/static/([^/\s]*/[^/\s]*)? {
 ```
 `.*` is also safe here, since `.` never matches `\n` by default in PCRE.
 
-## 4. Path Traversal / LFI via Root proxy_pass Without Upstream URI
-### Black-Box Discovery
+### 4. Path Traversal / LFI via Root proxy_pass Without Upstream URI
+#### Black-Box Discovery
 While fuzzing, or by viewing HTML page source code you get a `200 OK` response for the request `GET /assets/README.txt`, or `GET /assets/cat.jpeg`. These types of directories that server static files are the best candidate to test for LFI and path traversal. The detection goes like this:
 
 1. You find a valid URL that serves a static file, now there is potential for information disclosure by replacing the correct file with a random file, like so `GET /assets/anything`, this might return an unintended response that leaks the current directory being used to host and serve the static files (the error depends on the application stack used in the backend, in our case the response is coming from a Flask application).
@@ -322,7 +322,7 @@ Notice the difference in response, the first tells us that there is no such reso
 
 **Impact:** Arbitrary file read of anything the Flask process's OS user can access
 
-### White-Box Root Cause
+#### White-Box Root Cause
 Now you are thinking how is this very cliché bug even still relevant with all the security advancements we have made? A very innocent misconfiguration your sysadmin will push thinking it's too safe!
 The important part to notice here is the missing **trailing slash** in `proxy_pass` below at `/`.
 ```nginx
@@ -371,8 +371,8 @@ We can fix all this by simply appending a trailing slash to the root location's 
 <img width="1727" height="556" alt="image" src="https://github.com/user-attachments/assets/6b4f5d18-624c-4d28-b14c-57206194fd63" />
 And always make sure that we don't trust the reverse proxy, and perform server-side validation at the app level regardless.
 
-## 5. Authorizaion Bypass via Unvalidated Regex Capture in proxy_pass
-### Black-Box Discovery
+### 5. Authorizaion Bypass via Unvalidated Regex Capture in proxy_pass
+#### Black-Box Discovery
 1. You notice an endpoint that appears to do generic backend routing, like the following:
   - `GET /matchall/status` => you get a status page
   - `GET /matchall/changelog` => you get a changelog page
@@ -391,7 +391,7 @@ Indeed, we can conclude that the application is doing just that, taking whatever
 
 **Impact:** Unauthorized access to protected resources.
 
-### White-Box Root Cause
+#### White-Box Root Cause
 ```nginx
 location ~ /matchall/(.*) {
   proxy_pass http://flask:7000/$1;
@@ -423,8 +423,8 @@ location ~ ^/matchall/(admin(?:/|$)|secret(?:/|$)|private(?:/|$)|topsecret(?:/|$
 }
 ```
 
-## 6. IP Spoofing via Missing proxy_set_header Inheritance
-### Black-Box Discovery
+### 6. IP Spoofing via Missing proxy_set_header Inheritance
+#### Black-Box Discovery
 1. Doing fuzzing you notice that `/internal/debug` returns `403`
 2. Add a forged [`X-Forwarded-For`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/X-Forwarded-For) or `X-Real-IP` header claiming an internal address:
 ```
@@ -443,7 +443,7 @@ X-Forwarded-For: 10.1.1.1
 
 **Impact:** Full bypass of an IP-based access control using a single trivially forged request header.
 
-### White-Box Root Cause
+#### White-Box Root Cause
 This absolutely looks like a simple trusted spoofable header bug, but the precise mechanics are more specific and worth understanding.
 
 ```nginx
@@ -530,8 +530,8 @@ real_ip_header X-Forwarded-For;
 real_ip_recursive on;
 ```
 
-## 7. Denial of Service via Unbounded Request Body
-### Black-Box Discovery
+### 7. Denial of Service via Unbounded Request Body
+#### Black-Box Discovery
 You come across a file upload endpoint, among all the impacts you may aim for is DoS, which in case a misconfigured reverse proxy can be done through uploading extremely large data streams.
 1. Upload a small file to get an idea of how the endpoint responds normally
 ```
@@ -542,7 +542,7 @@ POST /upload (X-Filename: file.txt, small body) -> 201 Created
 
 **Impact:** A single unauthenticated bad actor can drive unbounded memory and/or disk consumption on the backend with trivial bandwidth investment.
 
-### White-Box Root Cause
+#### White-Box Root Cause
 ```nginx
 location /upload {
   client_max_body_size 0;
@@ -572,8 +572,8 @@ location /upload {
 limit_req_zone $binary_remote_addr zone=upload_limit:10m rate=1r/s;
 ```
 
-## 8. CORS Misconfiguration via Missing Regex Anchor
-### Black-Box Discovery
+### 8. CORS Misconfiguration via Missing Regex Anchor
+#### Black-Box Discovery
 You spot an endpoint that leaks sensitive/auth/pii data of the logged-in user, you can immediately think of CORS. Let's quickly setup the victim's side:
 1. Victim logs in via `/admin/portal` with cred: `admin:skyblue321`
 2. Victim visits a page you send him
@@ -583,7 +583,7 @@ Now, as the attacker, open another browser to test if you can access the sensiti
 
 **Impact:** Access to sensitive pages, reading authenticated responses cross-origin; including full session/account data theft against any logged-in user lured into the attacker's malicious page.
 
-### White-Box Root Cause
+#### White-Box Root Cause
 ```nginx
 location /account/session {
   if ($http_origin ~* ^https://([a-zA-Z0-9-]+\.)*skyblue\.com) {
@@ -607,8 +607,8 @@ if ($http_origin ~* ^https://([a-zA-Z0-9-]+\.)?skyblue\.com$) {
 }
 ```
 
-## 9. Open Redirect via User-Registerable Cloud Storage Bucket Name
-### Black-Box Discovery
+### 9. Open Redirect via User-Registerable Cloud Storage Bucket Name
+#### Black-Box Discovery
 1. You go through your Burp history, and you notice and endpoint that seems to be requesting images from S3:
 ```
 GET /s3/ne-1/assets-1/logo.png
@@ -631,7 +631,7 @@ Then, you got a confirmed bug and you now you should register the bucket `skyblu
 
 **Impact:** Phishing via a trusted-domain redirect chain, compounded by 30-minute cache poisoning of the redirect target for any visitor requesting the same crafted number.
 
-### White-Box Root Cause
+#### White-Box Root Cause
 ```nginx
 location ~ ^/s3/ne-1/assets-([0-9]+)/([^s]+)$ {
     access_log off;
@@ -652,8 +652,8 @@ Use a fixed, single bucket name with the identifier only in the path, never in t
 return 301 https://s3-ap-northeast-1.amazonaws.com/skyblue-assets/$1/$2;
 ```
 
-## 10. Access Control Bypass due to Default-Allow Gap in the map Directive and merge_slashes=off
-### Black-Box Discovery
+### 10. Access Control Bypass due to Default-Allow Gap in the map Directive and merge_slashes=off
+#### Black-Box Discovery
 1. You notice a set of endpoints that all share a prefix, and they seem to be privileged, and return `403`:
 ```
 GET /map-poc/private -> 403
@@ -677,7 +677,7 @@ Something worth noting, by sending a request to a random value after the shared 
 <img width="1723" height="364" alt="image" src="https://github.com/user-attachments/assets/c0452330-83b5-475c-a742-d7a9fff50fae" />
 *404 Error returned by an NGINX custom page*
 
-### White-Box Root Cause
+#### White-Box Root Cause
 ```nginx
 map $uri $mappocallow {
   /map-poc/private   0;
@@ -711,8 +711,8 @@ map $uri $mappocallow {
 }
 ```
 
-## 11. Cache Poisoning via Client-Controlled X-Forwarded-Host Header and Unkeyed Input
-### Black-Box Discovery
+### 11. Cache Poisoning via Client-Controlled X-Forwarded-Host Header and Unkeyed Input
+#### Black-Box Discovery
 1. You are going through the web application and notice a page that seems to be reflecting the same host it's currently on:
 <img width="2161" height="1136" alt="untitled (1)" src="https://github.com/user-attachments/assets/f7167d00-bfc3-4cdb-8fd9-c0eadedb327a" />
 2. Quickly think of cache poisoning, and make sure the endpoint is being cached (hopefully by a misconfigured reverse proxy)
@@ -727,7 +727,7 @@ We should tell which one is missing from the cache key, but from a black-box per
 <img width="2140" height="1260" alt="image" src="https://github.com/user-attachments/assets/d151a6dc-b6fc-42da-8340-8f9d57cf8459" />
 **NICE**
 
-### White-Box Root Cause
+#### White-Box Root Cause
 ```nginx
 location /preview-link {
   proxy_pass http://flask:7000/preview-link;
