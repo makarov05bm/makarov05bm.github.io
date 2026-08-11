@@ -10,22 +10,22 @@ This blog covers all misconfigurations present in the Damn Vulnerable Nginx Prox
 
 **DISCLAIMER:** Zero AI was used to write this blog, appreciate it? I know, you are welcome ;)
 
-# Introduction
-## What is Nginx, and Why Does it Matter?
+# 1. Introduction
+## 1.1 What is Nginx, and Why Does it Matter?
 Nginx is the most widely deployed reverse proxy in the world, powering roughly a third of all websites. And, as pentesters, bug bounty hunters or even security analysts we almost always come across it used as a load balancer, reverse proxy, or a simple server when doing engagements. Also, if you do configuration security reviews, you will need to have a good grasp of the common misconfigurations as well as some novel techniques usually weaponized by adversaries to bypass what looks seemingly secure.
 
 In a reverse-proxy role, Nginx sits in front of one or more backend applications, deciding which requests go where, applying access controls, caching responses, terminating TLS and rewriting URLs before they reach the application code behind it. This critical position is what makes Nginx misconfigurations so consequential. A bug in a backend application is usually confined to that application, however, a bug in the proxy level sitting in front of multiple application can easily and quickly enlarge the blast radius, often without the backend applications having any bugs of their own at all.
 
 Nginx configurations are full of directives whose exact semantics are easy to misjudge, whether a trailing slash strips a path prefix, whether one location's directive is inherited by another or not, whether a regex capture group is safe. None of these mistakes look wrong at a glance or a quick skim through the configuration code.
 
-## Why a Deliberately Vulnerable Reverse-Proxy Lab
+## 1.2 Why a Deliberately Vulnerable Reverse-Proxy Lab
 Most available hands-on web security training focuses on the application layer bugs, however, the reverse-proxy level is comparatively under-served; it's covered essentially in write-ups and reference wikis, but rarely as something a learner can actually, run, break and fix end-to-end. While diving into Nginx security this last month, I didn't want to reinvent the wheel, and looked for already implemented vulnerable Nginx proxies, but all I found was projects that didn't showcase novel techniques that reflect latest research done on Nginx security, and for the most part, those project presented only one or two misconfigurations in the most direct way possible, which is too good to be true.
 
 Damn Vulnerable Nginx Proxy exists to close that gap. Every finding we discuss in the guide is reproducible against a real, running reverse proxy. And for the most learning outcome, several findings are not isolated bugs but chains taken directly from real world findings, previous and novel research.
 
 This blog walks through almost all twenty documented findings twice; first from black-box perspective; what an external attacker with no idea on the configuration would try, and what they would observe, and then from a white-box perspective, explaining precisely which misused directive or line of code caused the bad behavior.
 
-# Lab Architecture
+# 2. Lab Architecture
 ## 2.1 Component Diagram
 The lab run three containers behind a single published port. An Nginx reverse proxy terminates all inbount traffic on port 8080 and routes to two independent Flask backends based on which of the three virtual hosts a request targets.
 
@@ -125,12 +125,12 @@ Only going through the black-box is generally enough if you your work does not i
 
 ---
 
-# Findings: portal.skyblue.com
+## Findings: portal.skyblue.com
 This is the main domain (set via the `default_server` directive in the nginx confi file), and it's what we as pentesters or bug bounty hunters don't usually spend much time navigating through, it's a boring status page!
 <img width="2147" height="1389" alt="image" src="https://github.com/user-attachments/assets/6d45a19e-46c8-466f-95b9-ae1b8e3fab96" />
 
-## 1. Authorization Bypass via a Permissive Alternate Root
-### Black-Box Discovery
+### 1. Authorization Bypass via a Permissive Alternate Root
+#### Black-Box Discovery
 1. Doing fuzzing you stumble upon some paths that reutrn `403`, like the following:
 ```
 GET /secret -> 403
@@ -150,7 +150,7 @@ GET /en-us/changelog
 
 **Impact:** Access controls bypass via alternate entry point.
 
-### White-Box Root Cause
+#### White-Box Root Cause
 A server block can define two locations to act as the root of the same backend upstream, in this case, whether you send a request to `/` or `/en-us`, they both land exacly at the same route (function) at the application level.
 ```nginx
 location / {
