@@ -721,7 +721,7 @@ Now we are sure that the page is being cached, now we gotta see whether the host
 <img width="1727" height="1103" alt="image" src="https://github.com/user-attachments/assets/acf968f6-96bc-470e-aa34-d48422a9feae" />
 We should tell which one is missing from the cache key, but from a black-box perspective that's a matter of trial and error, so play around with both and see which one is not being used as a cache key, and make sure to used a cache buster while trying. However, always keep in mind that sometimes both act as they are the same header, meaning they reach the backend app with the same value **(host==x_forwarded_for)** when there is only one proxy **(client -> proxy -> server)**, and when there are multiple proxies in the line **(client -> proxy_1 -> proxy_2 -> server)** then they will not hold the same value, so it's always trying to poison both.
 4. Now to exploit, we inject a malicious value at `X-Forwarded-For`, set a cache buster, and send the request potentially multiple times until we see response header `X-Cache-Status: HIT`
-
+<img width="1727" height="1163" alt="image" src="https://github.com/user-attachments/assets/d55c0b51-7ec9-4a44-b5d1-2c3a3c79b9ea" />
 **NICE**
 
 ### Black-Box Discovery
