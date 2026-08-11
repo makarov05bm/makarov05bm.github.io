@@ -1,4 +1,4 @@
----
+<img width="1727" height="1103" alt="image" src="https://github.com/user-attachments/assets/1eb88c1b-33a8-4584-a5f6-1315498440a7" /><img width="1727" height="1103" alt="image" src="https://github.com/user-attachments/assets/481219a1-356b-424c-93bf-cfe2de6c4fc1" />---
 layout: post
 title: "Comig soon, keep an eye!"
 date: 2026-08-09 08:00:00 +0100
@@ -717,8 +717,8 @@ map $uri $mappocallow {
 <img width="1727" height="477" alt="image" src="https://github.com/user-attachments/assets/368ed271-bc74-4fbe-add6-798a81cf7c29" />
 Now we are sure that the page is being cached, now we gotta see whether the host we saw earlier in the page is static or dynamically reflecting a request header.
 3. We try injecting a random value in `Host` then `X-Forwarded-Host`, we notice that both reflect, but what really matters is which one is not present in the cache key? hat's the one we used to conduct the attack
-<img width="1727" height="1103" alt="image" src="https://github.com/user-attachments/assets/2fd0b580-b179-4580-b8e0-d410bc74a2a0" />
-<img width="1727" height="1103" alt="image" src="https://github.com/user-attachments/assets/703bcafc-03b2-4df0-9599-90b0bc5ae84d" />
+<img width="1727" height="1103" alt="image" src="https://github.com/user-attachments/assets/6c784638-0cbc-4937-ba64-803677487a16" />
+<img width="1727" height="1103" alt="image" src="https://github.com/user-attachments/assets/acf968f6-96bc-470e-aa34-d48422a9feae" />
 We should tell which one is missing from the cache key, but from a black-box perspective that's a matter of trial and error, so play around with both and see which one is not being used as a cache key, and make sure to used a cache buster while trying. However, always keep in mind that sometimes both act as they are the same header, meaning they reach the backend app with the same value **(host==x_forwarded_for)** when there is only one proxy **(client -> proxy -> server)**, and when there are multiple proxies in the line **(client -> proxy_1 -> proxy_2 -> server)** then they will not hold the same value, so it's always trying to poison both.
 4. Now to exploit, we inject a malicious value at `X-Forwarded-For`, set a cache buster, and send the request potentially multiple times until we see response header `X-Cache-Status: HIT`
 <img width="1727" height="1103" alt="image" src="https://github.com/user-attachments/assets/cacc4d0f-4666-483b-bffa-c42ac2599151" />
