@@ -828,3 +828,41 @@ This vhost presents just the default Nginx index page, and we need to go from ju
 
 ### 12. Location Match-Priority Bypass via ^~ Overriding a Regex deny Rule
 #### Black-Box Discovery
+1. While doing your usual fuzzing, you found two entries that return an interesting `403`
+  - A deploy script: `/deploy.sh`
+  - A static assets dir: `/maintenance/` (notice that it's `/maintenance/` and not `/maintenance`, those two are not always the same in Nginx, so make sure to fuzz with and without an appended `/` for all the words in your wordlist)
+2. Notice how they seem related, what if the deploy script is under the maintenance dir, but the proxy is applying deny rules in the wrong order? To figure that out:
+```
+GET /maintenance/deploy.sh --> 200 OK
+```
+**NICE**
+
+The above behavior is more common that you may think, sysadmin may think that when he denies any request that ends with a sensitive extension that's enough and secure, but it's not in most cases
+
+**Impact:** Any backup, script, or config file placed under the exempted prefix bypasses the deny rule entirely, despite the rule appearing correct and secure in isolation.
+
+#### White-Box Root Cause
+```nginx
+# unsafe use of ^~
+location ^~ /maintenance/ {
+  root /var/www/dev;
+}
+
+# Intended to block backup/config file extensions everywhere on this vhost
+location ~* ^/.*\.(bak|old|swp|orig|sh|sql)$ {
+  deny all;
+}
+```
+
+Nginx's location-selection algorithm finds the longest matching PREFIX first, and if that prefix was declared with the `^~` modifier, Nginx stops and never evaluates any regex location at all for that request.
+
+`^~` is often used for performance optimization, without realizing it also skips security-relevant regex deny rules declared elsewhere in the same server block.
+
+**Remidiation:**
+Repeat the extension check inside the prefix location too
+```nginx
+location ^~ /maintenance/ {
+  root /var/www/dev;
+  location ~* \.(bak|old|swp|orig|sh|sql)$ { deny all; }
+}
+```
