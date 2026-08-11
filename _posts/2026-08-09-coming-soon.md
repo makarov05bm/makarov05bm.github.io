@@ -137,7 +137,7 @@ GET /topsecret -> 403
 2. While browsing the application, you notice that multiple requests seem to always append a prefix to whatever path they aim to access, like:
 ```
 GET /en-us/status
-GET /en-us/public
+GET /en-us/changelog
 ```
 3. This prefix can be your friend in bypassing those `403`s, just append it to them too!
 <img width="2159" height="328" alt="image" src="https://github.com/user-attachments/assets/d47f6ec9-cc39-48ed-9731-af58b04c9b6d" />
