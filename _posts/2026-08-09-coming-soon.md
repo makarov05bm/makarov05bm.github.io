@@ -10,7 +10,7 @@ This blog covers all misconfigurations present in the Damn Vulnerable Nginx Prox
 
 **DISCLAIMER:** Zero AI was used to write this blog, appreciate it? I know, you are welcome ;)
 
-# 1. Introduction
+# Introduction
 ## What is Nginx, and Why Does it Matter?
 Nginx is the most widely deployed reverse proxy in the world, powering roughly a third of all websites. And, as pentesters, bug bounty hunters or even security analysts we almost always come across it used as a load balancer, reverse proxy, or a simple server when doing engagements. Also, if you do configuration security reviews, you will need to have a good grasp of the common misconfigurations as well as some novel techniques usually weaponized by adversaries to bypass what looks seemingly secure.
 
@@ -25,7 +25,7 @@ Damn Vulnerable Nginx Proxy exists to close that gap. Every finding we discuss i
 
 This blog walks through almost all twenty documented findings twice; first from black-box perspective; what an external attacker with no idea on the configuration would try, and what they would observe, and then from a white-box perspective, explaining precisely which misused directive or line of code caused the bad behavior.
 
-# 2. Lab Architecture
+# Lab Architecture
 ## 2.1 Component Diagram
 The lab run three containers behind a single published port. An Nginx reverse proxy terminates all inbount traffic on port 8080 and routes to two independent Flask backends based on which of the three virtual hosts a request targets.
 
