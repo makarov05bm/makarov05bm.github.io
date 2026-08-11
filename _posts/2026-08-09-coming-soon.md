@@ -144,6 +144,8 @@ GET /en-us/public
 <img width="2159" height="694" alt="image" src="https://github.com/user-attachments/assets/4e0a0a05-5b87-4045-9a78-addaa0c0807d" />
 **NICE**
 
+**Impact:** Access controls bypass via alternate entry point.
+
 ### White-Box Root Cause
 A server block can define two locations to act as the root of the same backend upstream, in this case, whether you send a request to `/` or `/en-us`, they both land exacly at the same route (function) at the application level.
 ```nginx
@@ -168,8 +170,6 @@ location ~ ^/(secret|private|topsecret) {
 }
 ```
 Per-path deny rules provide no real coverage once any other location the same backend's full route surface; the entire model of individually blocking known sensitive paths is defeated when defining an alternate entry point.
-
-**Impact:** Access controls bypass via alternate entry point.
 
 **Remidiation:**
 Deny-list at the alternate root's location block too:
@@ -278,6 +278,7 @@ Which will redirect `/original-bucket/phish.html` to your bucket, so all you hav
 **Impact:** Redirect to malicious web pages, hosted on cloud storage buckets.
 
 ### White-Box Root Cause
+
 ```nginx
 location ~ /s3/static/([^/]*/[^/]*)? {
   access_log off;
