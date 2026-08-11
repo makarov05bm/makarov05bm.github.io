@@ -708,3 +708,42 @@ map $uri $mappocallow {
   /map-poc/public     1;
 }
 ```
+
+## 10. Cache Poisoning via Client-Controlled X-Forwarded-Host Header and Unkeyed Input
+### Black-Box Discovery
+1. You are going through the web application and notice a page that seems to be reflecting the same the host it's currently on:
+<img width="2161" height="1136" alt="untitled (1)" src="https://github.com/user-attachments/assets/f7167d00-bfc3-4cdb-8fd9-c0eadedb327a" />
+2. Quickly think of cache poisoning, and make sure the endpoint is being cached (hopefully by a misconfigured reverse proxy)
+<img width="1727" height="477" alt="image" src="https://github.com/user-attachments/assets/368ed271-bc74-4fbe-add6-798a81cf7c29" />
+Now we are sure that the page is being cached, now we gotta see whether the host we saw earlier in the page is static or dynamically reflecting a request header.
+3. We try injecting a random value in `Host` then `X-Forwarded-Host`, we notice that both reflect, but what really matters is which one is being used as the cache key?
+<img width="1727" height="1103" alt="image" src="https://github.com/user-attachments/assets/2fd0b580-b179-4580-b8e0-d410bc74a2a0" />
+<img width="1727" height="1103" alt="image" src="https://github.com/user-attachments/assets/703bcafc-03b2-4df0-9599-90b0bc5ae84d" />
+We should tell which one is missing from the cache key, but from a black-box perspective that's a matter of trial and error, so play around with both and see which used as he key, and make sure to used a cache buster while trying. However, always keep in mind that sometimes both act as they are the same header, meaning they reach the backend app with the same value **(host==x_forwarded_for)** when there is only one proxy **(client -> proxy)**, and when there are multiple proxies in the line **(client -> proxy_1 -> proxy_2 -> ...)** then they will not hold the same value, so it's always trying to poison both.
+4. Now to exploit, we inject a malicious value at `X-Forwarded-For`, set a cache buster, and send the request potentially multiple times until we see response header `X-Cache-Status: HIT`
+<img width="1727" height="1103" alt="image" src="https://github.com/user-attachments/assets/cacc4d0f-4666-483b-bffa-c42ac2599151" />
+**NICE**
+
+### Black-Box Discovery
+```nginx
+location /preview-link {
+  proxy_pass http://flask:7000/preview-link;
+  proxy_cache static_cache;
+  proxy_cache_valid 200 10m;
+  proxy_cache_key $scheme$host$request_uri;
+  add_header X-Cache-Status $upstream_cache_status always;
+}
+```
+We see that only the scheme, host and the request uri (path and query params) are used as cache keys, but `X-Forwarded-Host` is missing, meaning the victim only needs to provide the same scheme, host and uri and he will receive the cached malicious response.
+
+**Remidiation:**
+Add `X-Forwarded-For` to the cache key:
+```nginx
+location /preview-link {
+    proxy_pass http://flask:7000/preview-link;
+    proxy_cache static_cache;
+    proxy_cache_valid 200 10m;
+    proxy_cache_key $scheme$host$request_uri$http_x_forwarded_host;
+    add_header X-Cache-Status $upstream_cache_status always;
+}
+```
