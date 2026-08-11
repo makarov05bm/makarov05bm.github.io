@@ -292,7 +292,7 @@ Exclude whitespace/control characters explicitly from the capture:
 ```nginx
 location ~ /s3/static/([^/\s]*/[^/\s]*)? {
   access_log off;
-  proxy_pass https://s3-eu-west-1.amazonaws.com/skyblue-prod/$1.html;
+  proxy_pass https://s3-eu-west-1.amazonaws.com/skyblue-prod/$1;
 }
 ```
 `.*` is also safe here, since `.` never matches `\n` by default in PCRE.
