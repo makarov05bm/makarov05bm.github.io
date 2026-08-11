@@ -294,7 +294,7 @@ location ~ /s3/static/([^/\s]*/[^/\s]*)? {
 ```
 `.*` is also safe here, since `.` never matches `\n` by default in PCRE.
 
-## 3. Path Traversal / LFI via Root proxy_pass Without Upstream URI
+## 4. Path Traversal / LFI via Root proxy_pass Without Upstream URI
 ### Black-Box Discovery
 While fuzzing, or by viewing HTML page source code you get a `200 OK` response for the request `GET /assets/README.txt`, or `GET /assets/cat.jpeg`. These types of directories that server static files are the best candidate to test for LFI and path traversal. The detection goes like this:
 
@@ -364,7 +364,7 @@ We can fix all this by simply appending a trailing slash to the root location's 
 <img width="1727" height="556" alt="image" src="https://github.com/user-attachments/assets/6b4f5d18-624c-4d28-b14c-57206194fd63" />
 And always make sure that we don't trust the reverse proxy, and perform server-side validation at the app level regardless.
 
-## 4. Authorizaion Bypass via Unvalidated Regex Capture in proxy_pass
+## 5. Authorizaion Bypass via Unvalidated Regex Capture in proxy_pass
 ### Black-Box Discovery
 1. You notice an endpoint that appears to do generic backend routing, like the following:
   - `GET /matchall/status` => you get a status page
@@ -416,7 +416,7 @@ location ~ ^/matchall/(admin(?:/|$)|secret(?:/|$)|private(?:/|$)|topsecret(?:/|$
 }
 ```
 
-## 5. IP Spoofing via Missing proxy_set_header Inheritance
+## 6. IP Spoofing via Missing proxy_set_header Inheritance
 ### Black-Box Discovery
 1. Doing fuzzing you notice that `/internal/debug` returns `403`
 2. Add a forged [`X-Forwarded-For`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/X-Forwarded-For) or `X-Real-IP` header claiming an internal address:
@@ -523,7 +523,7 @@ real_ip_header X-Forwarded-For;
 real_ip_recursive on;
 ```
 
-## 6. Denial of Service via Unbounded Request Body
+## 7. Denial of Service via Unbounded Request Body
 ### Black-Box Discovery
 You come across a file upload endpoint, among all the impacts you may aim for is DoS, which in case a misconfigured reverse proxy can be done through uploading extremely large data streams.
 1. Upload a small file to get an idea of how the endpoint responds normally
@@ -565,7 +565,7 @@ location /upload {
 limit_req_zone $binary_remote_addr zone=upload_limit:10m rate=1r/s;
 ```
 
-## 7. CORS Misconfiguration via Missing Regex Anchor
+## 8. CORS Misconfiguration via Missing Regex Anchor
 ### Black-Box Discovery
 You spot an endpoint that leaks sensitive/auth/pii data of the logged-in user, you can immediately think of CORS. Let's quickly setup the victim's side:
 1. Victim logs in via `/admin/portal` with cred: `admin:skyblue321`
@@ -600,7 +600,7 @@ if ($http_origin ~* ^https://([a-zA-Z0-9-]+\.)?skyblue\.com$) {
 }
 ```
 
-## 8. Open Redirect via User-Registerable Cloud Storage Bucket Name
+## 9. Open Redirect via User-Registerable Cloud Storage Bucket Name
 ### Black-Box Discovery
 1. You go through your Burp history, and you notice and endpoint that seems to be requesting images from S3:
 ```
