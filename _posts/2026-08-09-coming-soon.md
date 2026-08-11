@@ -743,10 +743,80 @@ We see that only the scheme, host and the request uri (path and query params) ar
 Add `X-Forwarded-For` to the cache key:
 ```nginx
 location /preview-link {
-    proxy_pass http://flask:7000/preview-link;
+    proxy_pass http://flask:7000/preview-link;ca
     proxy_cache static_cache;
     proxy_cache_valid 200 10m;
     proxy_cache_key $scheme$host$request_uri$http_x_forwarded_host;
     add_header X-Cache-Status $upstream_cache_status always;
 }
 ```
+
+### 12. Web Cache Deception via Extension-Based Cache Matching
+#### Black-Box Discovery
+1. Fuzzing, you found an authenticated endpoint that seems to be intended to return logged-in admin session data (`/account/session`) which returns `401 UNAUTHORIZED`, as a hacker you need to quickly think of possible cache deception. The easiest way to tell this is by one or more of the following tactics:
+   - Immediately append a static file extension to the endpoint: `/account/session.css`
+       - If the application returns the same response as for `/account/session`, with a cache header, then it's a confirmed bug
+       - If you get `404`, check the next technique
+   - add a path and watch if the backend application seems to accept it and returns the same response: `/account/session/foo`
+       - In this case, proceed to add a static extension, and watch if the response includes a cache header: `/account/session/foo.css` --> 401 with header `X-Cache-Status`
+       - Even if the value of `X-Cache-Status` is `MISS` in the above test, that doesn't mean that the endpoint will not get cached, what matters in the detection phase is that there is a cache header in the response, and the caching period is long enough (however in case of a very sensitive endpoint like he one we are testing, even caching for a few minutes is very impactful)
+    - Another technique is appending a query param that ends with a static extension: `/account/session?foo=bar.js`
+2. To exploit, send the crafted URL to a privileged admin, and periodically check the same URL from your own browser so that when the victim visits it and it gets cached you will access the admin's sensitive session data
+
+**PS:** to login as the victim admin, there is a specific endpoint that can be found through fuzzing
+
+<img width="1733" height="363" alt="image" src="https://github.com/user-attachments/assets/3e0061b9-5661-4fd2-ae4c-7bab3a99cd9b" />
+
+**Impact:** sensitive per-user data becomes retrievable by any anonymous visitor as long as the cache key entry lives, triggered simple by luring an authenticated user to a crafted link.
+
+#### White-Box Root Cause
+```nginx
+location ~* \.(css|js|html|json)$ {
+  access_log off;
+  proxy_cache static_cache;
+  proxy_cache_valid 200 60m;
+  # note: no cookie/session in the key
+  proxy_cache_key $scheme$host$request_uri;
+  add_header X-Cache-Status $upstream_cache_status always;
+  proxy_pass http://flask:7000;
+}
+```
+There are two misconfiguration in the above configurations that made the exploit posible:
+  - The location matches ANY request path ending in one of those extensions
+  - The cache key is built purely from the URL (scheme + host + URI) with no cookie/session component
+
+And it's worth noting that the technique we showed in the black-box discovery section, where I said that you can use a query param with a static extension, that's doable in certain other proxies, however in Nginx that will not help as Nginx strips off query params when matching, so `/account/seesion?foo=bar.png` will not even match the above location block.
+
+**Remidiation:**
+1. Anchor a static-asset prefix instead of leaving the choice to users as long as the request ends with a static extension
+  ```nginx
+  location ~* ^/static/.*\.(css|js|html|json)$ {
+      access_log off;
+      proxy_cache static_cache;
+      proxy_cache_valid 200 60m;
+      proxy_cache_key $scheme$host$request_uri;
+      add_header X-Cache-Status $upstream_cache_status always;
+      proxy_pass http://flask:7000;
+  }
+  ```
+  Adding `^/static` means a request has to genuinely live under the static-asset path to match at all, since the backend app's `/account/session/<path:extra>` route does not live under `/static`, no fake extension trick can make the request satisfy this location anymore
+2. Don't cache responses that vary by identity
+  ```nginx
+  location ~* ^/static/.*\.(css|js|html|json)$ {
+      access_log off;
+  
+      # Never cache a response for a request that carried authentication
+      proxy_no_cache $http_cookie $http_authorization;
+      proxy_cache_bypass $http_cookie $http_authorization;
+  
+      proxy_cache static_cache;
+      proxy_cache_valid 200 60m;
+      proxy_cache_key $scheme$host$request_uri;
+      add_header X-Cache-Status $upstream_cache_status always;
+      proxy_pass http://flask:7000;
+  }
+  ```
+  - `proxy_no_cache`: if the request carries a cookie or auth header, never trigger a cache
+  - `proxy_cache_bypass`: if the request carries a cookie or auth header, never read from the cache, always go to backend fresh
+
+Together these mean that even a genuinely static-looking URL under /static can never be poisoned by an authenticated user (victim in case of attack), and an authenticated user can never receive someone else's cached data
