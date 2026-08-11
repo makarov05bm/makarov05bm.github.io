@@ -282,7 +282,7 @@ Which will redirect `/original-bucket/phish.html` to your bucket, so all you hav
 ```nginx
 location ~ /s3/static/([^/]*/[^/]*)? {
   access_log off;
-  proxy_pass https://s3-eu-west-1.amazonaws.com/skyblue-prod/$1.html;
+  proxy_pass https://s3-eu-west-1.amazonaws.com/skyblue-prod/$1;
 }
 ```
 `[^/]` excludes only the slash character; it does not exclude spaces, carriage returns, or line feeds. A request containing a url-encoded CRLF sequence (`%0d%0a`) is decoded by Nginx into raw conrol bytes before the capture happens, so `$1` can end up containing a complete, attacker-chosen extra header line or even a second request line once spliced into the outbound request nginx builds for the upstream.
