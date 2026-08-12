@@ -27,69 +27,9 @@ This blog walks through almost all twenty documented findings twice; first from 
 
 ## 2. Lab Architecture
 ### 2.1 Component Diagram
-The lab run three containers behind a single published port. An Nginx reverse proxy terminates all inbount traffic on port 8080 and routes to two independent Flask backends based on which of the three virtual hosts a request targets.
+The lab run three containers behind a single published port. An Nginx reverse proxy terminates all inbount traffic on port 8090 and routes to two independent Flask backends based on which of the three virtual hosts a request targets.
 
-<img width="1598" height="984" alt="a0e809bb-9900-4751-b5f9-3e494abbf6ac" src="https://github.com/user-attachments/assets/d6c1c22c-acb9-41f6-9f68-5921234e8b30" />
-
-### 2.2 Project Structure
-```
-├── app
-│   ├── app.py
-│   ├── requirements.txt
-│   ├── sensitive
-│   │   └── aws.key
-│   ├── static
-│   │   ├── css
-│   │   │   └── style.css
-│   │   └── js
-│   │       └── main.js
-│   ├── static-data
-│   │   ├── cat.jpeg
-│   │   ├── fish.jpg
-│   │   └── README.txt
-│   ├── templates
-│   │   ├── admin.html
-│   │   ├── api.html
-│   │   ├── base.html
-│   │   ├── download_error.html
-│   │   ├── home.html
-│   │   ├── private.html
-│   │   ├── public.html
-│   │   ├── secret.html
-│   │   └── topsecret.html
-│   ├── uploads
-│   └── uploads.db
-├── app-2
-│   ├── app.py
-│   ├── static
-│   │   ├── css
-│   │   │   └── style.css
-│   │   └── js
-│   │       └── main.js
-│   └── templates
-│       ├── admin.html
-│       ├── base.html
-│       ├── docs.html
-│       ├── home.html
-│       ├── repo.html
-│       └── report.html
-├── dev
-│   ├── html
-│   │   └── index.html
-│   └── static
-│       ├── db_backup_2026-08-01.sql
-│       ├── deploy.sh
-│       ├── img-1.jpg
-│       └── img-2.jpg
-├── docker-compose.yml
-├── nginx
-│   ├── flask.conf
-│   └── flask-v2.conf
-├── static-data
-└── user-data
-    ├── customer_data.csv
-    └── product_list_2026.csv
-```
+<img width="1598" height="984" alt="c28b2cec-cc6c-4220-9168-167264b62b50" src="https://github.com/user-attachments/assets/ac215d21-eb66-4559-822a-da5c532f2cae" />
 
 ## 3. Methodology
 ### 3.1 Black-Box vs White-Box Testing is this Guide
@@ -429,7 +369,7 @@ location ~ ^/matchall/(admin(?:/|$)|secret(?:/|$)|private(?:/|$)|topsecret(?:/|$
 2. Add a forged [`X-Forwarded-For`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/X-Forwarded-For) or `X-Real-IP` header claiming an internal address:
 ```
 GET /internal/debug
-Host: portal.skyblue.com:8080
+Host: portal.skyblue.com:8090
 X-Forwarded-For: 10.1.1.1
 ```
 3. If this return `200`, this means one of the three:
@@ -874,10 +814,10 @@ It's always worth injection XSS payloads in different headers in all different s
 1. Send a request with a crafted User-Agent containing an XSS payload (notice that we are sending the request to `portal.skyblue.com`, as the logs view web page can be used to only view the logs of the main web app and not the dev/internal hosts)
 ```
 GET / HTTP/1.1
-Host: portal.skyblue.com:8080
+Host: portal.skyblue.com:8090
 User-Agent: <script>alert(document.domain)</script>
 ```
-2. Victim visits the logs view page (`http://sandbox-dev-001.skyblue.com:8080/logs` and authenticates `admin:skyblue321`), the malicious log executes the injected Javascript
+2. Victim visits the logs view page (`http://sandbox-dev-001.skyblue.com:8090/logs` and authenticates `admin:skyblue321`), the malicious log executes the injected Javascript
 <img width="2162" height="591" alt="image" src="https://github.com/user-attachments/assets/ac5850b6-b86d-48dc-9027-5f96bc9e8a0e" />
 **NICE**
 
@@ -934,7 +874,7 @@ When coming across an Nginx proxy, it's always good to hunt for exposed Nginx me
 2. We did just that and found it publicaly exposed at:
 ```
 GET /nginx_status
-Host: portal.skyblue.com:8080
+Host: portal.skyblue.com:8090
 ```
 <img width="1588" height="213" alt="image" src="https://github.com/user-attachments/assets/7c729eb5-905d-45bb-aedd-d592d1fcce03" />
 
@@ -964,8 +904,8 @@ This is another vhost that seems to offer no UI, and aimed for development and s
 
 ### 1. Open Redirect via Missing Leading Slash in a Rewrite Capture Group
 #### Black-Box Discovery
-1. We visit the bare root of the vhsot `http://sandbox-dev-002.skyblue.com:8080/`, we notice that we are redirected to a third party domain
-2. Some misconfigured load balancers/reverse proxies implement the redirect in a vulnerable way, we can test that by appending anything after `/` like `http://sandbox-dev-002.skyblue.com:8080/evil.com`
+1. We visit the bare root of the vhsot `http://sandbox-dev-002.skyblue.com:8090/`, we notice that we are redirected to a third party domain
+2. Some misconfigured load balancers/reverse proxies implement the redirect in a vulnerable way, we can test that by appending anything after `/` like `http://sandbox-dev-002.skyblue.com:8090/evil.com`
 3. We get redirected to `https://skyblue.comevil.com/`! That's a random domain, we can easily register it and we have a proved open redirect
 
 Notice it's so easy to miss this finding, if all you do is take the vhost and give it to **ffuf** and filter match for `200` and `403` responses, as the status code in this case would be `301`, so always keep that in mind, and add it to your open redirect hunting methodology.
@@ -978,7 +918,7 @@ location / {
 }
 ```
 
-The regex `^/(.*)$` feels safe as it matches the leading slash, but the slash sits OUTSIDE the capturing parentheses; so it's consumed by the match but never included in `$1`. So, for a request to `http://sandbox-dev-002.skyblue.com:8080/evil.com` , `$1 == evil.com`. Concatenating `https://skyblue.com` + `evil.com` with no separator; which is a syntactically valid, registerable domain name an attacker can trivially own and abuse.
+The regex `^/(.*)$` feels safe as it matches the leading slash, but the slash sits OUTSIDE the capturing parentheses; so it's consumed by the match but never included in `$1`. So, for a request to `http://sandbox-dev-002.skyblue.com:8090/evil.com` , `$1 == evil.com`. Concatenating `https://skyblue.com` + `evil.com` with no separator; which is a syntactically valid, registerable domain name an attacker can trivially own and abuse.
 
 **Remidiation:**
 Move `/` inside the capture group:
