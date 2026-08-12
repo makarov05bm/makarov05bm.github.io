@@ -967,6 +967,8 @@ location /docs/audit-report {
 ---
 
 Phew! We covered almost all the important misconfigurations and exploit chains present in the codebase, congratz on that!
-However, however, there are still other gems that I want you to explore and find on your own research, read the conf code carefully, read search the directives that you don't know in the NGINX's docs, ask LLMs... I'm pretty sure you will learn more just by doing that!
+However, however, there are still other gems that I want you to explore and find on your own, read the conf code carefully, search for the directives that you don't know in the NGINX's docs, ask LLMs... I'm pretty sure you will learn more just by doing that!
 
-Thank you for reading the blog, hopefully you learned some new stuff, and if you found any errors, mistakes, issues please reach out to me, or open a PR ON Github, I'll be happy to get help making this project more extensive and even better with time, so don't hesitate to do that!
+Thank you for reading the blog, hopefully you learned some new stuff, and if you found any errors, mistakes, issues please reach out to me, or open a PR on Github, I'll be happy to get help making this project more extensive and even better with time, so don't hesitate to do that!
+
+**HAPPY HACKING!**
