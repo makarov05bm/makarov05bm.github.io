@@ -39,29 +39,27 @@ Only going through the black-box is generally enough if you your work does not i
 
 ## 4 Finding List: What We Will Go Through?
 ### 4.1 portal.skyblue.com
-1. Access Control Bypass via a Permissive Alternate Root
-2. Path Traversal / LFI via Root proxy_pass Without Upstream URI
-3. Authorizaion Bypass via Unvalidated Regex Capture in proxy_pass
-4. IP Spoofing via Missing proxy_set_header Inheritance
-5. Authentication Bypass by Cookie Replay (Static Session Token via auth_request)
-6. CORS Misconfiguration via Missing Regex Anchor
+1. Authorization Bypass via a Permissive Alternate Root
+2. Broken Access Control via Trim Inconsistencies
+3. HTTP Splitting via Unsanitized Regex Capture Leads to Open Redirect
+4. Path Traversal / LFI via Root proxy_pass Without Upstream URI
+5. Authorizaion Bypass via Unvalidated Regex Capture in proxy_pass
+6. IP Spoofing via Missing proxy_set_header Inheritance
 7. Denial of Service via Unbounded Request Body
-8. Web Cache Deception via Extension-Based Cache Matching
+8. CORS Misconfiguration via Missing Regex Anchor
 9. Open Redirect via User-Registerable Cloud Storage Bucket Name
-10. HTTP Response Splitting via Unsanitized Regex Capture
-11. Default-Allow Gap in the map Directive
-12. SSRF via Client-Controlled Host Header
+10. Access Control Bypass due to Default-Allow Gap in the map Directive and merge_slashes=off
+11. Cache Poisoning via Client-Controlled X-Forwarded-Host Header and Unkeyed Input
+12. Web Cache Deception via Extension-Based Cache Matching
 
 ### 4.2 sandbox-dev-001.skyblue.com
 1. Location Match-Priority Bypass via ^~ Overriding a Regex deny Rule
-2. Stored XSS via Unescaped Log Injection
+2. Blind Stored XSS via Unescaped Log Injection
 3. Information Disclosure via Exposed stub_status
 
 ### 4.3 sandbox-dev-002.skyblue.com
 1. Open Redirect via Missing Leading Slash in a Rewrite Capture Group
-2. Access Control Inconsistency - auth_basic Not Inherited by a More-Specific Location
-3. Credential Brute-Force via Missing Rate Limiting on Basic Auth
-4. Authentication Bypass via satisfy any and a Broken IP Trust Boundary
+2. Access Control Inconsistency due to auth_basic Not Inherited by a More-Specific Location
 
 ---
 
@@ -965,3 +963,10 @@ location /docs/audit-report {
   proxy_pass http://flask-2:3000/docs/audit-report;
 }
 ```
+
+---
+
+Phew! We covered almost all the important misconfigurations and exploit chains present in the codebase, congratz on that!
+However, however, there are still other gems that I want you to explore and find on your own research, read the conf code carefully, read search the directives that you don't know in the NGINX's docs, ask LLMs... I'm pretty sure you will learn more just by doing that!
+
+Thank you for reading the blog, hopefully you learned some new stuff, and if you found any errors, mistakes, issues please reach out to me, or open a PR ON Github, I'll be happy to get help making this project more extensive and even better with time, so don't hesitate to do that!
