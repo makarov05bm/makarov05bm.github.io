@@ -927,3 +927,41 @@ location / {
   rewrite ^(/.*)$ https://skyblue.com$1 permanent;
 }
 ```
+
+### 2. Access Control Inconsistency due to auth_basic Not Inherited by a More-Specific Location
+#### Black-Box Discovery
+1. As always, doing fuzzing you found a path `/docs` that requires authentication and returns `401 Unauthorized`, stop here? No
+2. Fuzz again but at a lower level, i.e, at `/docs/FUZZ`, you might be surprised by what you could find. In our case we could access `/docs/audit-report`!
+
+<img width="1733" height="676" alt="image" src="https://github.com/user-attachments/assets/a3ea5b3d-47e2-4f00-aff4-7802de428dfb" />
+<img width="1733" height="486" alt="image" src="https://github.com/user-attachments/assets/6ea8dfb0-0ae1-4c7f-9acc-ac29d0ddb877" />
+
+#### White-Box Root Cause
+```nginx
+location /docs {
+  auth_basic "Restricted";
+  auth_basic_user_file /etc/nginx/.htpasswd;
+  proxy_pass http://flask-2:3000/docs;
+}
+
+# More specific location = higher match priority, and it forgot to inherit auth_basic
+location /docs/audit-report {
+    proxy_pass http://flask-2:3000/docs/audit-report;
+}
+```
+
+The bug happens due to two reasons that worked together:
+  - Nginx location matching selects the LONGEST matching prefix for a given request
+  - Location blocks don't inherit directives from a shorter, textually-overlapping sibling
+
+In the above code, the dev thought that putting auth under `/docs` will cause it to also automatically apply to anything that starts with the `/docs` prefix, which is never the case. So, since directive inheritance does not work like the dev thought, then requests to `/docs/audit-report` will be proxied straight through with no authentication check at all causing unauthorized access to sensitive data/paths.
+
+**Remidiation:**
+Explicitly set auth at the `/docs/auit-report` location block:
+```nginx
+location /docs/audit-report {
+  auth_basic "Restricted";
+  auth_basic_user_file /etc/nginx/.htpasswd;
+  proxy_pass http://flask-2:3000/docs/audit-report;
+}
+```
