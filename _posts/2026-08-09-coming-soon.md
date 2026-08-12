@@ -968,7 +968,7 @@ This is another vhost that seems to offer no UI, and aimed for development and s
 2. Some misconfigured load balancers/reverse proxy implement the redirect in a vulnerable way, we can test that by appending anything after `/` like `http://sandbox-dev-002.skyblue.com/evil.com`
 3. We get redirected to `https://skyblue.comevil.com/`! That's a random domain, we can easily register it and we have a proved open redirect
 
-Notice it's really to miss this finding, if all you do is take the vhost and give to **ffuf** and filter match for `200` and `403` responses, as the status code in this case would be `301`, so always keep that in mind, as this finding is a documented misconfigured redirect behavior found in the wild.
+Notice it's so easy to miss this finding, if all you do is take the vhost and give to **ffuf** and filter match for `200` and `403` responses, as the status code in this case would be `301`, so always keep that in mind, as this finding is a documented misconfigured redirect behavior found in the wild.
 
 #### White-Box Root Cause
 ```nginx
