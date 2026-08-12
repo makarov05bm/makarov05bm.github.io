@@ -826,7 +826,7 @@ Together these mean that even a genuinely static-looking URL under /static can n
 This vhost presents just the default Nginx index page, and we need to go from just that to real hacker mode! No buttons, no fancy UI, just like we see everyday everywhere
 <img width="2162" height="484" alt="image" src="https://github.com/user-attachments/assets/14baa0c9-96a6-4fc1-9960-32b929fa4b6e" />
 
-### 12. Location Match-Priority Bypass via ^~ Overriding a Regex deny Rule
+### 1. Location Match-Priority Bypass via ^~ Overriding a Regex deny Rule
 #### Black-Box Discovery
 1. While doing your usual fuzzing, you found two entries that return an interesting `403`
   - A deploy script: `/deploy.sh`
@@ -864,5 +864,91 @@ Repeat the extension check inside the prefix location too
 location ^~ /maintenance/ {
   root /var/www/dev;
   location ~* \.(bak|old|swp|orig|sh|sql)$ { deny all; }
+}
+```
+
+### 2. Blind Stored XSS via Unescaped Log Injection
+#### Black-Box Discovery
+It's always worth injection XSS payloads in different headers in all different subdomains of your target, especially the User Agent, as it usually get logged, and if there a web application used to view the logs, there is a high possibility the XSS will go though as those web apps tend to be quickly set up and don't go through security testing as they are only intended for internal use.
+
+1. Send a request with a crafted User-Agent containing an XSS payload (notice that we are sending the request to `portal.skyblue.com`, as the logs view web page can be used to only view the logs of the main web app and not the dev/internal hosts)
+```
+GET / HTTP/1.1
+Host: portal.skyblue.com:8080
+User-Agent: <script>alert(document.domain)</script>
+```
+2. Victim visits the logs view page (`http://sandbox-dev-001.skyblue.com/logs` and authenticates `admin:skyblue321`), the malicious log executes the injected Javascript
+<img width="2162" height="591" alt="image" src="https://github.com/user-attachments/assets/ac5850b6-b86d-48dc-9027-5f96bc9e8a0e" />
+**NICE**
+
+#### White-Box Root Cause
+```nginx
+log_format portal_logs '$remote_addr - $http_user_agent - $request_uri';
+
+server {
+  server_name portal.skyblue.com;
+  access_log /var/log/nginx/access_portal.log portal_logs;
+}
+```
+
+None of the variables used in `log_format` are sanitized before being written to the log file. For example, `$http_user_agent` is entirely client-controlled and can any set of characters the client/attacker chooses, including but not limited to XSS payloads.
+
+In addition to this, the logs viewer Flask app in the backend reads the logs file and renders each line using Jinja2's `| safe` filter:
+```
+{% for line in lines %}{{ line | safe }}{% endfor %}
+```
+
+`| safe` deliberately disables Jinja's default auto-escaping. So, anything injected into the logs including a full `<script>` tag renders into the page exactly as stored, with not encoding.
+
+**Remidiation:**
+Making every current or future log viewer web page secure is not an easy task, unsanitazied logs should never be written to the logs files at all, or at least cleaned before they are written. Imagine that we fixed the current log viewer web page, and after a year, new devs come in and they decide they don't like the UI, so they vibe code their own quickly, in this case, if the new page does not sanitize the inputs from the log file then we are back to zero, that's why it's always better to do it at the proxy level as well as the application level.
+
+We can add these maps to the `http` block:
+```nginx
+map $http_user_agent $safe_user_agent {
+    default                    $http_user_agent;
+    "~[<>\"'&]"                "[user-agent contained invalid characters]";
+}
+
+map $request_uri $safe_request_uri {
+    default                    $request_uri;
+    "~[<>\"'&]"                "[uri contained invalid characters]";
+}
+```
+This will replace the user-agent and request uri (path+query params) with static values if it detects an HTML-significant character in them.
+
+Also make sure to enable auto-escaping in the backend application, in out Flask case, we need to remove `| safe`:
+```
+{% for line in lines %}{{ line }}{% endfor %}
+```
+
+### 3. Information Disclosure via Exposed stub_status
+#### Black-Box Discovery
+When coming across an Nginx proxy, it's always good to hunt for exposed Nginx metrics at the proxy level. This in its own is a low hanging low severity issue, but, it becomes a useful recon signal when conducting DoS/DDoS against the proxy to confirm whether the attempts are actually driving connection counts up and draining the resources.
+
+1. Craft your own special wordlist to fuzz for this endpoint, combining words like `nginx`, `status`, `stub`, `metrics`
+2. We did just that and found it at:
+```
+GET /nginx_status
+Host: portal.skyblue.com:8080
+```
+<img width="1588" height="213" alt="image" src="https://github.com/user-attachments/assets/7c729eb5-905d-45bb-aedd-d592d1fcce03" />
+
+#### White-Box Root Cause
+```nginx
+location /nginx_status {
+  stub_status;
+}
+```
+
+This endpoint which uses the `stub_status` directive to reports statistics on server usage, including current number of requests being handled, total number of handled requests, number of requests waiting to be handled... is exposed to the public with no rules.
+
+**Remidiation:**
+Deny external access:
+```nginx
+location /nginx_status {
+  stub_status;
+  allow 127.0.0.1;
+  deny all;
 }
 ```
