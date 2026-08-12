@@ -830,14 +830,14 @@ This vhost presents just the default Nginx index page, and we need to go from ju
 #### Black-Box Discovery
 1. While doing your usual fuzzing, you found two entries that return an interesting `403`
   - A deploy script: `/deploy.sh`
-  - A static assets dir: `/maintenance/` (notice that it's `/maintenance/` and not `/maintenance`, those two are not always the same in Nginx, so make sure to fuzz with and without an appended `/` for all the words in your wordlist)
+  - An interesting directory: `/maintenance/` (notice that it's `/maintenance/` and not `/maintenance`, those two are not always the same in Nginx, so make sure to fuzz with and without an appended `/` for all the words in your wordlist)
 2. Notice how they seem related, what if the deploy script is under the maintenance dir, but the proxy is applying deny rules in the wrong order? To figure that out:
 ```
 GET /maintenance/deploy.sh --> 200 OK
 ```
 **NICE**
 
-The above behavior is more common that you may think, sysadmin may think that when he denies any request that ends with a sensitive extension that's enough and secure, but it's not in most cases
+The above behavior is more common than you may think, sysadmin may think that when he denies any request that ends with a sensitive extension that's enough and secure, but it's not true in most cases.
 
 **Impact:** Any backup, script, or config file placed under the exempted prefix bypasses the deny rule entirely, despite the rule appearing correct and secure in isolation.
 
@@ -854,7 +854,7 @@ location ~* ^/.*\.(bak|old|swp|orig|sh|sql)$ {
 }
 ```
 
-Nginx's location-selection algorithm finds the longest matching PREFIX first, and if that prefix was declared with the `^~` modifier, Nginx stops and never evaluates any regex location at all for that request.
+Nginx's location-selection algorithm finds the longest matching PREFIX first, and if that prefix was declared with the `^~` modifier, Nginx stops and never evaluates any other regex location at all for that request. So, in the above code, when `/maintenance/` is matched, as it uses `^~`, then the location block that checks extensions will not be matched, as we mentioned, Nginx stops at the first blocks in case `^~` is used with that block.
 
 `^~` is often used for performance optimization, without realizing it also skips security-relevant regex deny rules declared elsewhere in the same server block.
 
@@ -877,7 +877,7 @@ GET / HTTP/1.1
 Host: portal.skyblue.com:8080
 User-Agent: <script>alert(document.domain)</script>
 ```
-2. Victim visits the logs view page (`http://sandbox-dev-001.skyblue.com/logs` and authenticates `admin:skyblue321`), the malicious log executes the injected Javascript
+2. Victim visits the logs view page (`http://sandbox-dev-001.skyblue.com:8080/logs` and authenticates `admin:skyblue321`), the malicious log executes the injected Javascript
 <img width="2162" height="591" alt="image" src="https://github.com/user-attachments/assets/ac5850b6-b86d-48dc-9027-5f96bc9e8a0e" />
 **NICE**
 
@@ -891,7 +891,7 @@ server {
 }
 ```
 
-None of the variables used in `log_format` are sanitized before being written to the log file. For example, `$http_user_agent` is entirely client-controlled and can any set of characters the client/attacker chooses, including but not limited to XSS payloads.
+None of the variables used in `log_format` are sanitized before being written to the log file. For example, `$http_user_agent` is entirely client-controlled and can contain any set of characters the client/attacker chooses, including but not limited to XSS payloads.
 
 In addition to this, the logs viewer Flask app in the backend reads the logs file and renders each line using Jinja2's `| safe` filter:
 {% raw %}
@@ -900,7 +900,7 @@ In addition to this, the logs viewer Flask app in the backend reads the logs fil
 ```
 {% endraw %}
 
-`| safe` deliberately disables Jinja's default auto-escaping. So, anything injected into the logs including a full `<script>` tag renders into the page exactly as stored, with not encoding.
+`| safe` deliberately disables Jinja's default auto-escaping. So, anything injected into the logs including a full `<script>` tag renders into the page exactly as stored, with no encoding.
 
 **Remidiation:**
 Making every current or future log viewer web page secure is not an easy task, unsanitazied logs should never be written to the logs files at all, or at least cleaned before they are written. Imagine that we fixed the current log viewer web page, and after a year, new devs come in and they decide they don't like the UI, so they vibe code their own quickly, in this case, if the new page does not sanitize the inputs from the log file then we are back to zero, that's why it's always better to do it at the proxy level as well as the application level.
@@ -917,7 +917,7 @@ map $request_uri $safe_request_uri {
     "~[<>\"'&]"                "[uri contained invalid characters]";
 }
 ```
-This will replace the user-agent and request uri (path+query params) with static values if it detects an HTML-significant character in them.
+This will replace the user-agent and request uri (path + query params) with static values if it detects an HTML-significant character in them.
 
 Also make sure to enable auto-escaping in the backend application, in out Flask case, we need to remove `| safe`:
 {% raw %}
@@ -928,10 +928,10 @@ Also make sure to enable auto-escaping in the backend application, in out Flask 
 
 ### 3. Information Disclosure via Exposed stub_status
 #### Black-Box Discovery
-When coming across an Nginx proxy, it's always good to hunt for exposed Nginx metrics at the proxy level. This in its own is a low hanging low severity issue, but, it becomes a useful recon signal when conducting DoS/DDoS against the proxy to confirm whether the attempts are actually driving connection counts up and draining the resources.
+When coming across an Nginx proxy, it's always good to hunt for exposed Nginx metrics at the proxy level. This in its own is a low hanging low severity issue, but, it becomes a useful recon signal when conducting DoS/DDoS against the target to confirm whether the attempts are actually driving connection counts up and draining the resources.
 
 1. Craft your own special wordlist to fuzz for this endpoint, combining words like `nginx`, `status`, `stub`, `metrics`
-2. We did just that and found it at:
+2. We did just that and found it publicaly exposed at:
 ```
 GET /nginx_status
 Host: portal.skyblue.com:8080
@@ -945,7 +945,7 @@ location /nginx_status {
 }
 ```
 
-This endpoint which uses the `stub_status` directive to reports statistics on server usage, including current number of requests being handled, total number of handled requests, number of requests waiting to be handled... is exposed to the public with no rules.
+This endpoint which uses the `stub_status` directive to report statistics on server usage, including current number of requests being handled, total number of handled requests, number of requests waiting to be handled... is exposed with no rules.
 
 **Remidiation:**
 Deny external access:
@@ -964,11 +964,11 @@ This is another vhost that seems to offer no UI, and aimed for development and s
 
 ### 1. Open Redirect via Missing Leading Slash in a Rewrite Capture Group
 #### Black-Box Discovery
-1. We visit the bare root of the vhsot `http://sandbox-dev-002.skyblue.com/`, we notice that we are redirected to a third party domain
-2. Some misconfigured load balancers/reverse proxy implement the redirect in a vulnerable way, we can test that by appending anything after `/` like `http://sandbox-dev-002.skyblue.com/evil.com`
+1. We visit the bare root of the vhsot `http://sandbox-dev-002.skyblue.com:8080/`, we notice that we are redirected to a third party domain
+2. Some misconfigured load balancers/reverse proxies implement the redirect in a vulnerable way, we can test that by appending anything after `/` like `http://sandbox-dev-002.skyblue.com:8080/evil.com`
 3. We get redirected to `https://skyblue.comevil.com/`! That's a random domain, we can easily register it and we have a proved open redirect
 
-Notice it's so easy to miss this finding, if all you do is take the vhost and give to **ffuf** and filter match for `200` and `403` responses, as the status code in this case would be `301`, so always keep that in mind, as this finding is a documented misconfigured redirect behavior found in the wild.
+Notice it's so easy to miss this finding, if all you do is take the vhost and give it to **ffuf** and filter match for `200` and `403` responses, as the status code in this case would be `301`, so always keep that in mind, and add it to your open redirect hunting methodology.
 
 #### White-Box Root Cause
 ```nginx
@@ -978,7 +978,7 @@ location / {
 }
 ```
 
-The regex `^/(.*)$` feels safe as it matches the leading slash, but he slash sits OUTSIDE the capturing parentheses; so it's consumed by the match bu never included in `$1`. So, for a request to `http://sandbox-dev-002.skyblue.com/evil.com` , `$1` becomes `evil.com`. Concatenating `https://skyblue.com` + `evil.com` with no separator; which is a syntactically valid, registerable domain name an attacker can own and abuse..
+The regex `^/(.*)$` feels safe as it matches the leading slash, but the slash sits OUTSIDE the capturing parentheses; so it's consumed by the match but never included in `$1`. So, for a request to `http://sandbox-dev-002.skyblue.com:8080/evil.com` , `$1 == evil.com`. Concatenating `https://skyblue.com` + `evil.com` with no separator; which is a syntactically valid, registerable domain name an attacker can trivially own and abuse.
 
 **Remidiation:**
 Move `/` inside the capture group:
