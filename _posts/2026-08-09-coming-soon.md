@@ -898,6 +898,7 @@ In addition to this, the logs viewer Flask app in the backend reads the logs fil
 ```jinja2
 {% for line in lines %}{{ line | safe }}{% endfor %}
 ```
+{% endraw %}
 
 `| safe` deliberately disables Jinja's default auto-escaping. So, anything injected into the logs including a full `<script>` tag renders into the page exactly as stored, with not encoding.
 
@@ -923,6 +924,7 @@ Also make sure to enable auto-escaping in the backend application, in out Flask 
 ```jinja2
 {% for line in lines %}{{ line }}{% endfor %}
 ```
+{% endraw %}
 
 ### 3. Information Disclosure via Exposed stub_status
 #### Black-Box Discovery
