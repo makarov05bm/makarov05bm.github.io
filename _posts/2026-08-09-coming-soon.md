@@ -894,7 +894,8 @@ server {
 None of the variables used in `log_format` are sanitized before being written to the log file. For example, `$http_user_agent` is entirely client-controlled and can any set of characters the client/attacker chooses, including but not limited to XSS payloads.
 
 In addition to this, the logs viewer Flask app in the backend reads the logs file and renders each line using Jinja2's `| safe` filter:
-```
+{% raw %}
+```jinja2
 {% for line in lines %}{{ line | safe }}{% endfor %}
 ```
 
@@ -918,7 +919,8 @@ map $request_uri $safe_request_uri {
 This will replace the user-agent and request uri (path+query params) with static values if it detects an HTML-significant character in them.
 
 Also make sure to enable auto-escaping in the backend application, in out Flask case, we need to remove `| safe`:
-```
+{% raw %}
+```jinja2
 {% for line in lines %}{{ line }}{% endfor %}
 ```
 
