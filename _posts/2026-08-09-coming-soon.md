@@ -976,7 +976,7 @@ location / {
 }
 ```
 
-The regex `^/(.*)$` feels safe as it matches the leading slash, but he slash sits OUTSIDE the capturing parentheses; so it's consumed by the match bu never included in `$1`. So, for a request to `http://sandbox-dev-002.skyblue.com/evil.com` , `$1` becomes `evil.com`. Concatenating `https://skyblue.com` + `evil.com` with no separator; which is a syntactically valid, registerable domain name an attacker can own and abuse.
+The regex `^/(.*)$` feels safe as it matches the leading slash, but he slash sits OUTSIDE the capturing parentheses; so it's consumed by the match bu never included in `$1`. So, for a request to `http://sandbox-dev-002.skyblue.com/evil.com` , `$1` becomes `evil.com`. Concatenating `https://skyblue.com` + `evil.com` with no separator; which is a syntactically valid, registerable domain name an attacker can own and abuse..
 
 **Remidiation:**
 Move `/` inside the capture group:
