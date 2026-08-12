@@ -954,3 +954,34 @@ location /nginx_status {
   deny all;
 }
 ```
+
+---
+
+## Findings: sandbox-dev-002.skyblue.com
+This is another vhost that seems to offer no UI, and aimed for development and staging, let's see what we can uncover!
+
+### 1. Open Redirect via Missing Leading Slash in a Rewrite Capture Group
+#### Black-Box Discovery
+1. We visit the bare root of the vhsot `http://sandbox-dev-002.skyblue.com/`, we notice that we are redirected to a third party domain
+2. Some misconfigured load balancers/reverse proxy implement the redirect in a vulnerable way, we can test that by appending anything after `/` like `http://sandbox-dev-002.skyblue.com/evil.com`
+3. We get redirected to `https://skyblue.comevil.com/`! That's a random domain, we can easily register it and we have a proved open redirect
+
+Notice it's really to miss this finding, if all you do is take the vhost and give to **ffuf** and filter match for `200` and `403` responses, as the status code in this case would be `301`, so always keep that in mind, as this finding is a documented misconfigured redirect behavior found in the wild.
+
+#### White-Box Root Cause
+```nginx
+location / {
+  proxy_ssl_verify on;
+  rewrite ^/(.*)$ https://skyblue.com$1 permanent;
+}
+```
+
+The regex `^/(.*)$` feels safe as it matches the leading slash, but he slash sits OUTSIDE the capturing parentheses; so it's consumed by the match bu never included in `$1`. So, for a request to `http://sandbox-dev-002.skyblue.com/evil.com` , `$1` becomes `evil.com`. Concatenating `https://skyblue.com` + `evil.com` with no separator; which is a syntactically valid, registerable domain name an attacker can own and abuse.
+
+**Remidiation:**
+Move `/` inside the capture group:
+```nginx
+location / {
+  rewrite ^(/.*)$ https://skyblue.com$1 permanent;
+}
+```
