@@ -63,6 +63,8 @@ Only going through the black-box is generally enough if you your work does not i
 
 ---
 
+**Important Note:** you will notice in the screenshots that I'm using port `8080` while your lab will use port `8090` and that's because I changed it for you as I know most of us already use `8080` for Burp.
+
 ## Findings: portal.skyblue.com
 This is the main domain (set via the `default_server` directive in the nginx confi file), and it's what we as pentesters or bug bounty hunters don't usually spend much time navigating through, it's a boring status page!
 <img width="2147" height="1389" alt="image" src="https://github.com/user-attachments/assets/6d45a19e-46c8-466f-95b9-ae1b8e3fab96" />
