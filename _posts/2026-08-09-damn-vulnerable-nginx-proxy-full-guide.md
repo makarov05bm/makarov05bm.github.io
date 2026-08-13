@@ -996,7 +996,6 @@ To exploit the bug, one of the following needs to be satisfied:
             const tokenElement = document.getElementById("token");
             const keysElement = document.getElementById("keys");
 
-            // Change this key if ssh_keys.html uses a different localStorage key.
             const token = localStorage.getItem("admin_token");
 
             if (!token) {
@@ -1047,8 +1046,8 @@ Host: compromised.skyblue.com
 
  HTTP/1.1
 Host: sandbox-dev-001.skyblue.com
----
 ```
+
 Meaning the first request will go though, reaching out to the host with XSS, fetched it and executes it while the browser is still at `sandbox-dev-001.skyblue.com:8090`.
 
 <img width="2156" height="1068" alt="image" src="https://github.com/user-attachments/assets/e3ee03ae-6ea6-4556-8aea-0048aea203fc" />
