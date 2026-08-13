@@ -972,7 +972,7 @@ location /docs/audit-report {
 ---
 
 ### HTTPs Lab Specific Bug: Frontend Server Hijacking (FrontJacking)
-This bug class is novel and was observed in the wild after **React2Shell** was disclosed, and it's quite interesting, and can be seen in many variants, we will discuss one variant, however, all types of the issue come to one root cause; the use of the `$uri` or `$document_uri` directives in a frontend proxy.
+This bug class is [novel](https://securitylabs.datadoghq.com/articles/web-traffic-hijacking-nginx-configuration-malicious/) and was observed in the wild after **React2Shell** was disclosed, and it's quite interesting, and can be seen in many variants, we will discuss one variant, however, all types of the issue come to one root cause; the use of the `$uri` or `$document_uri` directives in a frontend proxy.
 
 **Note:**
 In `https:portal.skyblue.com:8090`, 8080 is only the port exposed by docker, under the hood it's routing traffic to 443, so in a real life target it's `https://portal.skyblue.com:443` or just `https://portal.skyblue.com` as the port is inferred from the scheme.
