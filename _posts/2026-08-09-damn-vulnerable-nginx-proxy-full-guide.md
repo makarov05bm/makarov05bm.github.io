@@ -1037,7 +1037,7 @@ To exploit the bug, one of the following needs to be satisfied:
 ```
 5. Now let's finally exploit FrontJacking, all we gotta do is inject a CRLF and a host header pointing to the host where we injected the XSS
 ```
-https:///%20HTTP/1.1%0d%0aHost:compromised.skyblue.com%0d%0a%0d%0a
+https://sandbox-dev-001.skyblue.com:8090/%20HTTP/1.1%0d%0ahost:compromised.skyblue.com%0d%0a%0d%0a
 ```
 So basically what the above request would do, is first send a request to the front end proxy which has one job; terminating SSL. Then after the traffic is clear, the frontend proxy tries to route it to the corresponding host `sandbox-dev-001`, however while doing so it treats the CRLF literally causing the request to be:
 
