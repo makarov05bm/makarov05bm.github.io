@@ -1040,6 +1040,7 @@ To exploit the bug, one of the following needs to be satisfied:
 https:///%20HTTP/1.1%0d%0aHost:compromised.skyblue.com%0d%0a%0d%0a
 ```
 So basically what the above request would do, is first send a request to the front end proxy which has one job; terminating SSL. Then after the traffic is clear, the frontend proxy tries to route it to the corresponding host `sandbox-dev-001`, however while doing so it treats the CRLF literally causing the request to be:
+
 ```
 / HTTP/1.1
 Host: compromised.skyblue.com
@@ -1051,6 +1052,45 @@ Host: sandbox-dev-001.skyblue.com
 Meaning the first request will go though, reaching out to the host with XSS, fetched it and executes it while the browser is still at `sandbox-dev-001.skyblue.com:8090`.
 
 <img width="2156" height="1068" alt="image" src="https://github.com/user-attachments/assets/e3ee03ae-6ea6-4556-8aea-0048aea203fc" />
+
+#### White-Box Root Cause
+```nginx
+server {
+    listen 443 ssl;
+    server_name www.skyblue.com;
+
+    ssl_certificate /etc/ssl/certs/skyblue.com.pem;
+    ssl_certificate_key /etc/ssl/certs/skyblue.com-key.pem;
+
+    root /var/www/main/html;
+    index index.html index.htm index.nginx-debian.html;
+
+    location / {
+      proxy_pass http://127.0.0.1:80$document_uri;
+      proxy_set_header Host $host;
+    }
+}
+```
+
+`$document_uri` decodes to a string containing actual `0x0D 0x0A` bytes and the literal text `HTTP/1.1\r\nHost:compromised.skyblue.com\r\n\r\n`. When nginx drops that into the proxied request, those bytes are no longer "URI content" they're real CRLFs that terminate the request line and start a second, attacker-controlled request line on the same upstream connectio to a host of his control. That's the classic HTTP request splitting we know, and it's what lets the attacker redirect the backend's routing decision (via `Host:`) to a different vhost than the one the browser's address bar / TLS SNI shows.
+
+**Remediation:**
+Don't reconstruct the upstream URI from a decoded variable at all, let it be forwarded the normal way by Nginx:
+```nginx
+server {
+    listen 443 ssl;
+    server_name www.skyblue.com;
+
+    ssl_certificate /etc/ssl/certs/skyblue.com.pem;
+    ssl_certificate_key /etc/ssl/certs/skyblue.com-key.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:80;   # no URI suffix, no $document_uri/$uri
+        proxy_set_header Host $host;
+        proxy_http_version 1.1;
+    }
+}
+```
 
 ---
 
