@@ -29,7 +29,7 @@ This blog walks through almost all twenty documented findings twice; first from 
 ### 2.1 Component Diagram
 The lab run three containers behind a single published port. An Nginx reverse proxy terminates all inbount traffic on port 8090 and routes to two independent Flask backends based on which of the three virtual hosts a request targets.
 
-<img width="1598" height="984" alt="c28b2cec-cc6c-4220-9168-167264b62b50" src="https://github.com/user-attachments/assets/ac215d21-eb66-4559-822a-da5c532f2cae" />
+<img width="1602" height="982" alt="e1988d88-75d7-4325-99e2-78b083a608b5" src="https://github.com/user-attachments/assets/f31b3b53-1b2a-49aa-a67d-a58924f4299c" />
 
 ## 3. Methodology
 ### 3.1 Black-Box vs White-Box Testing is this Guide
