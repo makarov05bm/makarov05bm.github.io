@@ -27,7 +27,9 @@ This blog walks through almost all twenty documented findings twice; first from 
 
 ## 2. Lab Architecture
 ### 2.1 Component Diagram
-The lab run three containers behind a single published port. An Nginx reverse proxy terminates all inbount traffic on port 8090 and routes to two independent Flask backends based on which of the three virtual hosts a request targets.
+**HTTP Lab:** The lab run three containers behind a single published port. An Nginx reverse proxy terminates all inbount traffic on port 8090 and routes it to two independent Flask backends based on which of the three virtual hosts a request targets.
+
+**HTTPs Lab:** The lab run four containers behind a single published port. An Nginx reverse proxy performs TLS termination on all inbount traffic at port 8090 and routes the decrypted requests to three independent backends (two Flask and one Go), based on which of the three virtual hosts a request targets.
 
 <img width="1602" height="982" alt="e1988d88-75d7-4325-99e2-78b083a608b5" src="https://github.com/user-attachments/assets/f31b3b53-1b2a-49aa-a67d-a58924f4299c" />
 
