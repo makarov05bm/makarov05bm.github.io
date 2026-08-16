@@ -2,7 +2,7 @@
 layout: post
 title: "Mass Hunting For HTTP/2 Cleartext Smuggling"
 date: 2026-08-09 08:00:00 +0100
-categories: [Web Securiy, Nginx, Proxy, HTTP2]
+categories: [HTTP2, Web Securiy, Nginx, Proxy]
 tags: [Proxy, Request Smuggling, h2c, HTTP2, NGINX, Apache, HAProxy]
 ---
 
