@@ -35,7 +35,7 @@ While going through Burp history trying to find any pages being cached, the abov
 ```
 Cache-Control: no-cache, no-store, must-revalidate
 ```
-By just seeing that I thought nothing interesting here, but I decided to try it anyways and it turned out to be vulnerable. After inspection and communicating with the team, I came up to the realization
+By just seeing that I thought nothing interesting here, but I decided to test it anyways and it turned out to be vulnerable. After inspection and communicating with the team, I came up to the realization
 that their reverse proxy was caching by static file extensions, ignoring **origin** `Cache-Control`, and that's what caused the reverse proxy to cache the response even though the backend explicitly ordered it not to do so, and then the reverse proxy forwarded the header as is to the client, which has no effect, as the response was already cached.
 
 ## 4. Key Takeaways
