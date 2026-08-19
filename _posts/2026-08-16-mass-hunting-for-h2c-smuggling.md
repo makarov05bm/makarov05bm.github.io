@@ -63,7 +63,7 @@ So `HTTP2-Settings` is only received by the proxy and no need to forward it to t
 By default most of proxies do not forward the `Upgrade` and `Connection` headers, including NGINX, Apache, Envoy, AWS ALB/CLB... And some others forward them by default such as HAProxy, Traefik and Nuster.
 However, this does not mean all NGINX instances are secure right away, as this is not a bug at the NGINX level, but a misconfiguration, so it can happen and is proved to happen in the wild.
 
-### 2.2 Vulnerable Sample
+### 2.2 Vulnerable Nginx Configuration
 `Golang` micro services specifically tend to support h2c connections as it's a really good use case for communications between micro services in a network.
 
 ```nginx
@@ -112,3 +112,28 @@ Let's test requesting the two endpoints:
 <img width="1467" height="256" alt="image" src="https://github.com/user-attachments/assets/50b261e7-5780-43a6-bc2b-2f77749db81b" />
 
 We see that `/billing/admin` causes a `403` from the NGINX, meaning NGINX inspected the traffic as it does with normal HTTP.
+
+### 2.3 Demo Authorization Bypass
+One of the many techniques that an adversary can weaponize to bypass `403`s is the use of `h2c` in case the backend happens to be supporting it, so from a black-box stand point, it's a game of trial and error (with some clever fingerprinting is some cases, which we will take a look at later).
+
+The [spec](https://datatracker.ietf.org/doc/html/rfc7540#section-3.3) mentions that `h2c` upgrades over TLS are not allowed, so HTTP clients such as curl won't let us do that, so instead we will need to craft our own client to send the `h2c` upgrade request, and luckily we already have a script that does just that. [h2csmuggler by BishopFox](https://github.com/BishopFox/h2csmuggler).
+
+To exploit h2c, we should determine the following:
+1. The entry endpoint that proxies requests to a backend service which supports `h2c`
+   - in our case it's `/billing`, which forwards the `Upgrade` and `Connection` headers
+2. A gated endpoint which exists in the backend application that supports `h2c`
+  - in our case it's `/billing/admin`
+
+Now, We can use h2cSmuggler to confirm the proxy's insecure configuration using `--test` (or `-t`):
+<img width="1197" height="130" alt="image" src="https://github.com/user-attachments/assets/3e66b615-c700-43c5-98c0-aefd8f8b617e" />
+
+This means that `/billing` successfully forwarded the `Upgrade` and `Connection` as follows:
+```
+Upgrade: h2c
+Connection: Upgrade
+```
+
+And the backend responded with `101 Switching protocols`. However, keep in mind that the backend may return `101` but not serve requests on the TCP tunnel we aim to create, that why we test against an endpoint that previously returned `403` to confirm and verify the exploitability (required for bounty hunters). So, let;s do just that using h2csmuggler:
+<img width="1433" height="522" alt="image" src="https://github.com/user-attachments/assets/11f61121-5fb3-4d91-9847-b8e14f349398" />
+
+This confirms the bypass.
