@@ -6,6 +6,8 @@ categories: [Cache Deception, Web Securiy]
 tags: [Cache Deception, Web Security, AppSec]
 ---
 
+Hunting for cache deception does not always imply looking for pages that contain authenticated user's data, even unauthenticated app visitors can enter sensitive data in the website's input fields without being authenticated!
+
 ## 1. Finding Description
 A cache deception is a bug that happens when a cache server is tricked to cache a response that contains sensitive data specific to a certain client and should not be cached and accessible to the public.
 
