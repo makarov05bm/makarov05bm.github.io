@@ -125,16 +125,17 @@ To exploit h2c, we should determine the following:
   - in our case it's `/billing/admin`
 
 Now, We can use h2cSmuggler to confirm the proxy's insecure configuration using `--test` (or `-t`):
-<img width="1197" height="130" alt="image" src="https://github.com/user-attachments/assets/3e66b615-c700-43c5-98c0-aefd8f8b617e" />
+<img width="1427" height="130" alt="image" src="https://github.com/user-attachments/assets/d884a232-b672-4e4a-8697-d1fe55d258b2" />
 
 This means that `/billing` Nginx location successfully forwarded the `Upgrade` and `Connection` to the backend as follows:
 ```
 Upgrade: h2c
-Connection: Upgrade
+HTTP2-Settings: AAMAAABkAARAAAAAAAIAAAAA
+Connection: Upgrade, HTTP2-Settings
 ```
 
 And the backend responded with `101 Switching protocols`. However, keep in mind that the backend may return `101` but not serve requests on the TCP tunnel we aim to create, that's why we test against an endpoint that previously returned `403` to confirm and verify the exploitability (required for bounty hunters). So, let's do just that using h2csmuggler:
-<img width="1433" height="522" alt="image" src="https://github.com/user-attachments/assets/11f61121-5fb3-4d91-9847-b8e14f349398" />
+<img width="1594" height="534" alt="image" src="https://github.com/user-attachments/assets/5aff64e9-bdbf-4a73-8125-ede2a7919795" />
 
 This confirms the bypass, i.e, the TCP tunnel was established between the client and backend and NGINX became blind. 
 
@@ -145,6 +146,19 @@ As I already mentioned, some reverse proxies handle forwarding the `Upgrade` and
 - **Test Malformed Requests:** Send invalid HTTP methods or strange characters to see how the edge handles syntax rejection differently, which can reveal what reverse proxy is being used
 
 Next step is collecting the endpoints that point to the backend services that may support `h2c`. As we've seen in the sample configuration above, it's not necessary that the location that proxies to an h2c-supporting backend is `/`, but can be anything, such as in the sample; `/billing`. So, the logical thing to do now, is fuzz for all endpoints, at multiple levels (e.g, `/billing`, `/billing/admin`, `/billing/admin/user-list`...), then save the `200`s in a file, and the `403`s in another file alone.
+
+Let's see the difference response behavior to sending a request with the headers:
+```
+Upgrade: h2c
+HTTP2-Settings: AAMAAABkAARAAAAAAAIAAAAA
+Connection: Upgrade, HTTP2-Settings
+```
+
+<img width="1723" height="556" alt="image" src="https://github.com/user-attachments/assets/6289affa-5a90-436d-b1cc-547fb262545d" />
+*/changelog is an endpoint that does not route to an h2c backend, reponse is 200, or it can be any other except for 101*
+
+<img width="1723" height="556" alt="image" src="https://github.com/user-attachments/assets/4ca259de-11d0-4e8f-a9a8-8bfb1bee54e2" />
+*/billing routes traffic to a backend service that supports h2c, so response was 101*
 
 Next, we use `h2csmuggler` to test if any of the endpoints that returned `200` can be used for tunneling:
 ```
