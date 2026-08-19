@@ -175,6 +175,6 @@ Where `XXXX` is the endpoint that can be used to upgrade to `h2c` and `ZZZZ` is 
 
 ---
 
-I encourage you to create your own scripts and automate the process with agentic skills ot hunt for this bug at a mass scale on all your bug bouny programs, and read on the websocket counter part of this exploit.
+I encourage you to create your own scripts and automate the process with agentic skills to hunt for this bug at a mass scale on all your bug bouny programs, and read on the websocket counter part of this exploit.
 
 **HAPPY HACKING!**
