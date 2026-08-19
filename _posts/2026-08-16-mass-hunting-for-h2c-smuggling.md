@@ -137,3 +137,7 @@ And the backend responded with `101 Switching protocols`. However, keep in mind 
 <img width="1433" height="522" alt="image" src="https://github.com/user-attachments/assets/11f61121-5fb3-4d91-9847-b8e14f349398" />
 
 This confirms the bypass, i.e, the TCP tunnel was established between the client and backend and NGINX became blind. 
+
+## Fingerprinting and Recon at Scale
+
+# TO BE CONTINUED
