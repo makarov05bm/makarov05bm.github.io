@@ -58,7 +58,7 @@ And extracted from [RFC 7540 Section 3.2.1](https://datatracker.ietf.org/doc/htm
 
 So `HTTP2-Settings` is only received by the proxy and no need to forward it to the backend.
 
-## White-Box Side of Things
+## 2. White-Box Side of Things
 ### 2.1 When and Where h2c is Exploitable?
 By default most of proxies do not forward the `Upgrade` and `Connection` headers, including NGINX, Apache, Envoy, AWS ALB/CLB... And some others forward them by default such as HAProxy, Traefik and Nuster.
 However, this does not mean all NGINX instances are secure right away, as this is not a bug at the NGINX level, but a misconfiguration, so it can happen and is proved to happen in the wild.
@@ -138,6 +138,6 @@ And the backend responded with `101 Switching protocols`. However, keep in mind 
 
 This confirms the bypass, i.e, the TCP tunnel was established between the client and backend and NGINX became blind. 
 
-## Fingerprinting and Recon at Scale
+## 3. Fingerprinting and Recon at Scale
 
 # TO BE CONTINUED
