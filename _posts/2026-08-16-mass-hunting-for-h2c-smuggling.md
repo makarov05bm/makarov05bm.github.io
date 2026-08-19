@@ -19,9 +19,9 @@ Read more about it on [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Re
 ### 1.2 How this Relates to Proxies?
 Proxies support upgrades to WebSocket/H2C by keeping the original client/server connection established and use it as a channel to tunnel the TCP traffic to the backend, at this stage the proxy is no longer context-aware and cannot apply access control rules on the inbound/outbound traffic.
 
-1. HTTP connection is established between he client and backend
-2. Client initiates an HTTP/1.1 upgrade request to protocol X
-3. If backend supports protocol X, it responds with a `101 Switching Protocols` response code
-4. Client receives that response and start sending data using the newly agreed-on protocol
+1. Client initiates an HTTP/1.1 upgrade request to protocol X
+2. If backend supports protocol X, it responds with a `101 Switching Protocols` response code
+3. Client receives that response and start sending data using the newly agreed-on protocol, over the same connection that was used to upgrade the proocol
 
-<img width="983" height="1157" alt="image" src="https://github.com/user-attachments/assets/e36e95be-7278-4e09-9506-40c7449fde70" />
+<img width="983" height="748" alt="image" src="https://github.com/user-attachments/assets/82c9a704-7dbd-4515-bcc4-9a9435284bf8" />
+
