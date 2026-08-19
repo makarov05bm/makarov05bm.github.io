@@ -139,5 +139,24 @@ And the backend responded with `101 Switching protocols`. However, keep in mind 
 This confirms the bypass, i.e, the TCP tunnel was established between the client and backend and NGINX became blind. 
 
 ## 3. Fingerprinting and Recon at Scale
+As I already mentioned, some reverse proxies handle forwarding the `Upgrade` and `Connection` headers by default such as HAProxy and other don't like NGINX. So finding out which is used would give us a better view if the next steps, however this is not a hard requirement and we can test for the exploit blindly. Nonetheless, there are multiple techniques to fingerprint the reverse proxy being used, these inspection techniques include:
+- **Examine HTTP Headers:** Check the Server or Via fields in response headers, though administrators often change or hide these
+- **Analyze Error Pages:** Request a non-existent path or trigger a 400 Bad Request; default error page HTML structures, styling, or specific phrasing are often unique to software like Nginx, Envoy, or HAProxy
+- **Test Malformed Requests:** Send invalid HTTP methods or strange characters to see how the edge handles syntax rejection differently, which can reveal what reverse proxy is being used
+
+Next step is collecting the endpoints that point to the backend services that may support `h2c`. As we've seen in the sample configuration above, it's not necessary that the location that proxies to an h2c-supporting backend is `/`, but can be anything, such as in the sample; `/billing`. So, the logical thing to do now, is fuzz for all endpoints, at multiple levels (e.g, `/billing`, `/billing/admin`, `/billing/admin/user-list`...), then save the `200`s in a file, and the `403`s in another file alone.
+
+Next, write a script that uses `h2csmuggler` to test if any of the endpoints that returned `200` can be used for tunneling, the script would issue the following command:
+```
+python3 h2cscanner.py https://127.0.0.1:8090/XXXX --test
+```
+
+Alternatively, you can write a simpler script that sends h2c upgrade requests to the endpoints that returned `200`, and save the ones that respond with `101 Switching Protocols`.
+
+Last step, now you have two final lists, one for the endpoints that can used for tunneling, and the other for any endpoint that return 403 that you aim to bypass, all that we need to do now is write another script that would use h2csmuggler to issue the command:
+```
+python3 h2csmuggler.py -x https://127.0.0.1:8090/XXXX https://127.0.0.1:8090/ZZZZ
+```
+Where `XXXX` is the endpoint that can be used to upgrade to `h2c` and `ZZZZ` is the `403` endpoint we want to bypass.
 
 # TO BE CONTINUED
