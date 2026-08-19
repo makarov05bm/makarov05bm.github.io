@@ -169,7 +169,7 @@ Alternatively, you can write a simpler script that sends h2c upgrade requests to
 
 Last step, now you have two final lists, one for the endpoints that can used for tunneling, and the other for any endpoint that return 403 that you aim to bypass, all that we need to do now is write another script that would use h2csmuggler to issue the command:
 ```
-python3 h2csmuggler.py -x https://127.0.0.1:8090/XXXX https://127.0.0.1:8090/ZZZZ
+python3 h2csmuggler.py -x https://www.skyblue.com:8090/XXXX https://www.skyblue.com:8090/ZZZZ
 ```
 Where `XXXX` is the endpoint that can be used to upgrade to `h2c` and `ZZZZ` is the `403` endpoint we want to bypass.
 
