@@ -767,7 +767,7 @@ And it's worth noting that the technique we showed in the black-box discovery se
 Together these mean that even a genuinely static-looking URL under /static can never be poisoned by an authenticated user (victim in case of attack), and an authenticated user can never receive someone else's cached data
 
 ### 13. Request Smuggling Via HTTP/2 Cleartext (h2c)
-Refer to this [blog post](https://blog.oussmess.me/posts/mass-hunting-for-h2c-smuggling/).
+Refer to this [blog post](https://blog.oussmess.me/posts/mass-hunting-for-h2c-smuggling/) where we dig deep into h2c smuggling.
 
 ---
 
