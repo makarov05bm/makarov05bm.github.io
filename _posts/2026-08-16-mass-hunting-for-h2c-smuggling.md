@@ -25,3 +25,4 @@ Proxies support upgrades to WebSocket/H2C by keeping the original client/server 
 
 <img width="983" height="748" alt="image" src="https://github.com/user-attachments/assets/82c9a704-7dbd-4515-bcc4-9a9435284bf8" />
 
+Now, after the reverse proxy received the 101 response from the backend, it will maintain a persistent TCP connection without inspecting the content going back and forth between the client and the backend.
