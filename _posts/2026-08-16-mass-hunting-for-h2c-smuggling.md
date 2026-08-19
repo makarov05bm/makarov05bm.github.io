@@ -146,9 +146,9 @@ As I already mentioned, some reverse proxies handle forwarding the `Upgrade` and
 
 Next step is collecting the endpoints that point to the backend services that may support `h2c`. As we've seen in the sample configuration above, it's not necessary that the location that proxies to an h2c-supporting backend is `/`, but can be anything, such as in the sample; `/billing`. So, the logical thing to do now, is fuzz for all endpoints, at multiple levels (e.g, `/billing`, `/billing/admin`, `/billing/admin/user-list`...), then save the `200`s in a file, and the `403`s in another file alone.
 
-Next, write a script that uses `h2csmuggler` to test if any of the endpoints that returned `200` can be used for tunneling, the script would issue the following command:
+Next, we use `h2csmuggler` to test if any of the endpoints that returned `200` can be used for tunneling:
 ```
-python3 h2cscanner.py https://127.0.0.1:8090/XXXX --test
+python3 h2csmuggler.py --scan-list urls.txt --threads 5 2>errors.txt 1>results.txt
 ```
 
 Alternatively, you can write a simpler script that sends h2c upgrade requests to the endpoints that returned `200`, and save the ones that respond with `101 Switching Protocols`.
