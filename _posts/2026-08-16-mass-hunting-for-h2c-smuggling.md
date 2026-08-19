@@ -10,7 +10,7 @@ In this blog I'm going to go through a systematic approach to test for h2c smugg
 
 ## 1. Introduction
 ### 1.1 What is the HTTP/1.1 Upgrade Header?
-`Upgrade` is a request and response header that can be used to upgrade an already-established client/server connection to a different protocol (over the same underlying transport protocol). For example, a client can use it to upgrade the connection from HTTP/1.1 to HTTP/2 (not important for our case), or to upgrade an HTTP(s) connection to a WebSocket and other similar protocols like H2C (HTTP/2 Cleartext).
+`Upgrade` is a request and response header that can be used to upgrade an already-established client/server connection to a different protocol (over the same underlying transport protocol). For example, a client can use it to upgrade the connection from HTTP/1.1 to HTTP/2 (not important for our case), or to upgrade an HTTP(s) connection to a WebSocket and other similar protocols like h2c (HTTP/2 Cleartext).
 
 > **Warning:** HTTP/2 explicitly disallows the use of this mechanism and header; it is specific to HTTP/1.1.
 
@@ -26,3 +26,9 @@ Proxies support upgrades to WebSocket/H2C by keeping the original client/server 
 <img width="983" height="748" alt="image" src="https://github.com/user-attachments/assets/82c9a704-7dbd-4515-bcc4-9a9435284bf8" />
 
 Now, after the reverse proxy received the 101 response from the backend, it will maintain a persistent TCP connection without inspecting the content going back and forth between the client and the backend.
+
+Quoting from this [F5](https://www.f5.com/company/blog/nginx/websocket-nginx) blog post:
+> NGINX supports WebSocket by allowing a tunnel to be set up between a client and a backend server.
+
+And it's the same for **h2c**, which is an unencrypted version of HTTP/2 that runs over a plain TCP connection without TLS, and retains request multiplexing over a single TCP connection.
+
