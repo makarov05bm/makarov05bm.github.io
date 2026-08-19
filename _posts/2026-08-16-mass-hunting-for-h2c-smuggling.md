@@ -147,7 +147,7 @@ As I already mentioned, some reverse proxies handle forwarding the `Upgrade` and
 
 Next step is collecting the endpoints that point to the backend services that may support `h2c`. As we've seen in the sample configuration above, it's not necessary that the location that proxies to an h2c-supporting backend is `/`, but can be anything, such as in the sample; `/billing`. So, the logical thing to do now, is fuzz for all endpoints, at multiple levels (e.g, `/billing`, `/billing/admin`, `/billing/admin/user-list`...), then save the `200`s in a file, and the `403`s in another file alone.
 
-Let's see the difference response behavior to sending a request with the headers:
+Let's see the difference response behavior to sending a request with the headers (you can simulate the demo with Damn Vulnerable NGINX Proxy):
 ```
 Upgrade: h2c
 HTTP2-Settings: AAMAAABkAARAAAAAAAIAAAAA
@@ -173,4 +173,8 @@ python3 h2csmuggler.py -x https://127.0.0.1:8090/XXXX https://127.0.0.1:8090/ZZZ
 ```
 Where `XXXX` is the endpoint that can be used to upgrade to `h2c` and `ZZZZ` is the `403` endpoint we want to bypass.
 
-# TO BE CONTINUED
+---
+
+I encourage you to create your own scripts and automate the process with agentic skills ot hunt for this bug at a mass scale on all your bug bouny programs, and read on the websocket counter part of this exploit.
+
+**HAPPY HACKING!**
