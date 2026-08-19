@@ -136,4 +136,4 @@ Connection: Upgrade
 And the backend responded with `101 Switching protocols`. However, keep in mind that the backend may return `101` but not serve requests on the TCP tunnel we aim to create, that's why we test against an endpoint that previously returned `403` to confirm and verify the exploitability (required for bounty hunters). So, let's do just that using h2csmuggler:
 <img width="1433" height="522" alt="image" src="https://github.com/user-attachments/assets/11f61121-5fb3-4d91-9847-b8e14f349398" />
 
-This confirms the bypass.
+This confirms the bypass, i.e, the TCP tunnel was established between the client and backend and NGINX became blind. 
