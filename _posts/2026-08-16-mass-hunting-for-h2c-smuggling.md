@@ -32,3 +32,83 @@ Quoting from this [F5](https://www.f5.com/company/blog/nginx/websocket-nginx) bl
 
 And it's the same for **h2c**, which is an unencrypted version of HTTP/2 that runs over a plain TCP connection without TLS, and retains request multiplexing over a single TCP connection.
 
+### 1.3 Upgrade HTTP/1.1 Connection to Persistent h2c
+Usage of HTTP/2 can be achieved using multiple methods, one of which is the use of the `Upgrade` header.
+
+```http
+GET / HTTP/1.1
+Host: www.target.tld
+Upgrade: h2c
+HTTP2-Settings: AAMAAABkAARAAAAAAAIAAAAA
+Connection: Upgrade, HTTP2-Settings
+```
+
+> **Note:** The Connection header with type upgrade must always be sent with the Upgrade header.
+
+And extracted from [RFC 7540 Section 3.2.1](https://datatracker.ietf.org/doc/html/rfc7540#section-3.2.1)
+```
+   A request that upgrades from HTTP/1.1 to HTTP/2 MUST include exactly
+   one "HTTP2-Settings" header field.  The HTTP2-Settings header field
+   is a connection-specific header field that includes parameters that
+   govern the HTTP/2 connection, provided in anticipation of the server
+   accepting the request to upgrade.
+
+     HTTP2-Settings    = token68
+```
+
+So `HTTP2-Settings` is only received by the proxy and no need to forward it to the backend.
+
+## White-Box Side of Things
+### 2.1 When and Where h2c is Exploitable?
+By default most of proxies do not forward the `Upgrade` and `Connection` headers, including NGINX, Apache, Envoy, AWS ALB/CLB... And some others forward them by default such as HAProxy, Traefik and Nuster.
+However, this does not mean all NGINX instances are secure right away, as this is not a bug at the NGINX level, but a misconfiguration, so it can happen and is proved to happen in the wild.
+
+### 2.2 Vulnerable Sample
+`Golang` micro services specifically tend to support h2c connections as it's a really good use case for communications between micro services in a network.
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name www.skyblue.com;
+
+    ssl_certificate /etc/ssl/certs/skyblue.com.pem;
+    ssl_certificate_key /etc/ssl/certs/skyblue.com-key.pem;
+
+    root /var/www/main/html;
+    index index.html index.htm index.nginx-debian.html;
+
+    location / {
+      proxy_pass http://127.0.0.1:80;
+      proxy_http_version 1.1;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection $http_connection;
+    }
+}
+
+server {
+  default 80;
+
+  server_name portal.skyblue.com;
+
+  location /billing {
+    proxy_pass http://billing:9999;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $http_connection;
+  }
+
+  location /billing/admin {
+    deny all;
+  }
+}
+```
+
+The NGINX configuration above does the following:
+- TLS termination on port 443
+- The / location at the 443 server forwards the `Upgrade` and `Connection` headers, which is very typical if the backend supports WebSockets too
+- The `/billing` endpoint forwards request to the h2c-supporting backend service (same thing if the endpoint was pointing to backend websocket route)
+- `/billing/admin` is gated, no one should be able to reach it via the proxy
+
+Let's test requesting the two endpoints:
+<img width="1467" height="256" alt="image" src="https://github.com/user-attachments/assets/50b261e7-5780-43a6-bc2b-2f77749db81b" />
+
+We see that `/billing/admin` causes a `403` from the NGINX, meaning NGINX inspected the traffic as it does with normal HTTP.
