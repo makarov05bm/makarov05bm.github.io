@@ -14,7 +14,8 @@ A cache deception is a bug that happens when a cache server is tricked to cache 
 In the scenario of the bug I'm disclosing here, the client's email is the sensitive data being cached and leaked. When doing bug hunting or pentest, any information relating to an **identified** or **identifiable**
 natural person is considered a personal data violation and should be flagged and reported.
 
-**identified** -> named person
+**identified** -> information that directly and uniquely identifies a person
+
 **identifiable** -> person can be identified using a combination of the data available and other data collected from other resources
 
 ## 2. Exploit Steps
