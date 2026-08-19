@@ -53,6 +53,7 @@ Only going through the black-box is generally enough if you your work does not i
 10. Access Control Bypass due to Default-Allow Gap in the map Directive and merge_slashes=off
 11. Cache Poisoning via Client-Controlled X-Forwarded-Host Header and Unkeyed Input
 12. Web Cache Deception via Extension-Based Cache Matching
+13. Request Smuggling Via HTTP/2 Cleartext (h2c)
 
 ### 4.2 sandbox-dev-001.skyblue.com
 1. Location Match-Priority Bypass via ^~ Overriding a Regex deny Rule
@@ -764,6 +765,9 @@ And it's worth noting that the technique we showed in the black-box discovery se
   - `proxy_cache_bypass`: if the request carries a cookie or auth header, never read from the cache, always go to backend fresh
 
 Together these mean that even a genuinely static-looking URL under /static can never be poisoned by an authenticated user (victim in case of attack), and an authenticated user can never receive someone else's cached data
+
+### 13. Request Smuggling Via HTTP/2 Cleartext (h2c)
+Refer to this [blog post](https://blog.oussmess.me/posts/mass-hunting-for-h2c-smuggling/).
 
 ---
 
