@@ -127,13 +127,13 @@ To exploit h2c, we should determine the following:
 Now, We can use h2cSmuggler to confirm the proxy's insecure configuration using `--test` (or `-t`):
 <img width="1197" height="130" alt="image" src="https://github.com/user-attachments/assets/3e66b615-c700-43c5-98c0-aefd8f8b617e" />
 
-This means that `/billing` successfully forwarded the `Upgrade` and `Connection` as follows:
+This means that `/billing` Nginx location successfully forwarded the `Upgrade` and `Connection` to the backend as follows:
 ```
 Upgrade: h2c
 Connection: Upgrade
 ```
 
-And the backend responded with `101 Switching protocols`. However, keep in mind that the backend may return `101` but not serve requests on the TCP tunnel we aim to create, that why we test against an endpoint that previously returned `403` to confirm and verify the exploitability (required for bounty hunters). So, let;s do just that using h2csmuggler:
+And the backend responded with `101 Switching protocols`. However, keep in mind that the backend may return `101` but not serve requests on the TCP tunnel we aim to create, that's why we test against an endpoint that previously returned `403` to confirm and verify the exploitability (required for bounty hunters). So, let's do just that using h2csmuggler:
 <img width="1433" height="522" alt="image" src="https://github.com/user-attachments/assets/11f61121-5fb3-4d91-9847-b8e14f349398" />
 
 This confirms the bypass.
