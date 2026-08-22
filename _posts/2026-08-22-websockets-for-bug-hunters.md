@@ -6,8 +6,6 @@ categories: [WebSocket, Web Security]
 tags: [WebSocket, ws, AppSec]
 ---
 
-**WORKING ON IT!**
-
 ## 1. WebSocket Protocol Overview
 The WebSocket protocol enables ongoing, full-duplex, bidirectional communication between web servers and web clients over an underlying TCP connection.
 
