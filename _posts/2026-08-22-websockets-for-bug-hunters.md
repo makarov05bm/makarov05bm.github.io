@@ -93,3 +93,17 @@ Sec-WebSocket-Version: 13
 - `Connection: Upgrade` - tells proxies or other intermediaries to also upgrade the connection
 - `Sec-WebSocket-Key` - a Base64-encoded random value that helps the server prove it’s a WebSocket-capable server (automatically set by the browser)
 - `Sec-WebSocket-Version` - the version of the WebSocket protocol the client wishes to use (almost always 13)
+
+#### 2. Server handshake response
+Once the server receives the handshake request, if it supports WS and accepts the request to upgrade, it responds with a `101 Switching Protocols` HTTP response:
+```http
+HTTP/1.1 101 Switching Protocols
+Upgrade: websocket
+Connection: Upgrade
+Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=
+```
+
+- `HTTP/1.1 101 Switching Protocols` - indicates the successful upgrade from HTTP to WebSocket
+- `Upgrade: websocket` - confirms the protocol upgrade
+- `Connection: Upgrade` - indicates that the connection has been upgraded
+- `Sec-WebSocket-Accept` - a value calculated from the client’s Sec-WebSocket-Key, which helps verify that the server understood the WebSocket handshake request
