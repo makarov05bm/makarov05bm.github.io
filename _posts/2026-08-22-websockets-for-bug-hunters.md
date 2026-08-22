@@ -110,3 +110,17 @@ Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=
 - `Upgrade: websocket` - confirms the protocol upgrade
 - `Connection: Upgrade` - indicates that the connection has been upgraded
 - `Sec-WebSocket-Accept` - a value calculated from the client’s Sec-WebSocket-Key, which helps verify that the server understood the WebSocket handshake request
+
+## 2. WebSocket Authentication Mechanics
+As the official documentation states, the browser WebSocket API has no way to set custom HTTP headers, so it's up to the devs to choose the mechanism they wish to verify identity.
+```js
+// This is the entire browser WebSocket API for connection setup.
+// Notice: no headers parameter, no options object.
+const ws = new WebSocket("wss://example.com/ws");
+// Compare with fetch, which supports arbitrary headers:
+// fetch(url, { headers: { Authorization: "Bearer ..." } })
+```
+
+There exists currently three approaches to prove identity for WS, each comes with pros and cons.
+
+What we need to keep in mind, is that as we've seen already that WebSockets are stateful, meaning after the first handshake between he client and the server, they from now on know each other, and there is no need to send the auth token or cookie with each request (typically called a message in WS) unlike with HTTP. But, how does the server prove client's identity then? It happens at the handshake actually, with the first HTTP GET request sent by the client with the `Upgrade`, `Connection`, `Sec-WebSocket-Key`... headers, the client also usually attaches a cookie (or other methods we will see in just a bit) to the request, and the server verifies then caches the user's data from the cookie, only then it responds with `101`. And after that, there is no need to send the cookie or any other auth mechanism at all. This is so important, so keep it in mind.
