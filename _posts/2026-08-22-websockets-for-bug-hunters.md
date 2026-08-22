@@ -122,6 +122,8 @@ What we need to keep in mind, is that as we've seen already that WebSockets are 
 
 There exists currently three approaches to prove identity for WS, each comes with pros and cons.
 
+**Note:** The code samples above are pseudo codes, keeping only the important parts to understand how each mechanism works.
+
 ### 2.1 URL query parameter authentication
 Pass the token in the WebSocket URL. The server validates it during the HTTP upgrade handshake, before the connection is established.
 
@@ -130,7 +132,6 @@ Pass the token in the WebSocket URL. The server validates it during the HTTP upg
 const ws = new WebSocket(
   `wss://example.com/ws?token=${encodeURIComponent(token)}`
 );
-}
 ```
 
 **Server**
@@ -155,3 +156,81 @@ server.on("upgrade", (req, socket, head) => {
   });
 });
 ```
+
+### 2.2 Cookie-based authentication
+If your WebSocket server shares a domain with your web application, cookies set during the HTTP login flow are automatically sent with the WebSocket upgrade request.
+
+**Client**
+```js
+// no special handling needed; cookies are attached
+// automatically if the WebSocket is on the same domain
+const ws = new WebSocket("wss://example.com/ws");
+```
+
+**Server**
+```js
+server.on("upgrade", (req, socket, head) => {
+  // Session extracted from cookie
+  const sessionId = parseCookie(req.headers.cookie, "session_id");
+  const session = sessionStore.get(sessionId);
+
+  // Session Invalid => reject upgrade
+  if (!session || session.expired()) {
+    socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
+    socket.destroy();
+    return;
+  }
+
+  // Session valid => upgrade
+  wss.handleUpgrade(req, socket, head, (ws) => {
+    ws.user = session.user;
+    wss.emit("connection", ws, req);
+  });
+});
+```
+
+### 2.3 First-message authentication
+Open the connection without credentials, then send the token as the first message. The server validates before processing anything else. This method is rarely used.
+
+**Client**
+```js
+const ws = new WebSocket("wss://example.com/ws");
+
+// immediately send token to WS server
+ws.onopen = async () => {
+  ws.send(JSON.stringify({ type: "auth", token }));
+};
+```
+
+**Server**
+```js
+// set up the connection with an auth timeout
+wss.on("connection", (ws) => {
+  ws.authenticated = false;
+
+  const authTimeout = setTimeout(() => {
+    if (!ws.authenticated) ws.close(4001, "Auth timeout");
+  }, 5000);
+
+  ws.on("message", (data) => {
+      const msg = JSON.parse(data);
+      if (!ws.authenticated) {
+        if (msg.type !== "auth") {
+          ws.close(4001, "Authenticate first");
+          return;
+        }
+        const user = validateToken(msg.token);
+        if (!user) {
+          ws.close(4001, "Invalid token");
+          return;
+        }
+        ws.authenticated = true; // cached, so connection is authenticated from now on
+        ws.user = user;
+        clearTimeout(authTimeout);
+        ws.send(JSON.stringify({ type: "auth_result", success: true }));
+        return;
+      }
+    });
+});
+```
+
