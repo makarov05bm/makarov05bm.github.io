@@ -210,7 +210,7 @@ ws.onopen = async () => {
 wss.on("connection", (ws) => {
   ws.authenticated = false;
 
-  // close connection if user does not provide a valid auth token after 5s
+  // close connection if user does not provide a valid auth token within 5 seconds
   const authTimeout = setTimeout(() => {
     if (!ws.authenticated) ws.close(4001, "Auth timeout");
   }, 5000);
