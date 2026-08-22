@@ -122,7 +122,7 @@ What we need to keep in mind, is that as we've seen already that WebSockets are 
 
 There exists currently three approaches to prove identity for WS, each comes with pros and cons.
 
-**Note:** The code samples above are pseudo codes, keeping only the important parts to understand how each mechanism works.
+**Note:** The code samples below are pseudo codes, keeping only the important parts to understand how each mechanism works.
 
 ### 2.1 URL query parameter authentication
 Pass the token in the WebSocket URL. The server validates it during the HTTP upgrade handshake, before the connection is established.
