@@ -210,29 +210,29 @@ ws.onopen = async () => {
 wss.on("connection", (ws) => {
   ws.authenticated = false;
 
+  // close connection if user does not provide a valid auth token after 5s
   const authTimeout = setTimeout(() => {
     if (!ws.authenticated) ws.close(4001, "Auth timeout");
   }, 5000);
 
   ws.on("message", (data) => {
       const msg = JSON.parse(data);
-      if (!ws.authenticated) {
-        if (msg.type !== "auth") {
-          ws.close(4001, "Authenticate first");
-          return;
-        }
-        const user = validateToken(msg.token);
-        if (!user) {
-          ws.close(4001, "Invalid token");
-          return;
-        }
-        ws.authenticated = true; // cached, so connection is authenticated from now on
-        ws.user = user;
-        clearTimeout(authTimeout);
-        ws.send(JSON.stringify({ type: "auth_result", success: true }));
+
+      const user = validateToken(msg.token);
+
+      // token invalid, close connection
+      if (!user) {
+        ws.close(4001, "Invalid token");
         return;
       }
-    });
+
+      // token valid, cache, and keep connection open
+      ws.authenticated = true; // cached, so connection is authenticated from now on
+      ws.user = user; // user data cached
+
+      return;
+    }
+  });
 });
 ```
 
