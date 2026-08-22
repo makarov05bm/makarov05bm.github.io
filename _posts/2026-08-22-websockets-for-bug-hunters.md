@@ -34,6 +34,9 @@ In simple terms, the WS protocol consists of two phases; an opening handshake do
 As stated by the [official website](https://websocket.org/guides/websocket-protocol/):
 > The WebSocket protocol (RFC 6455) upgrades an HTTP connection to a persistent, full-duplex channel. After a handshake, client and server exchange lightweight frames - text, binary, or control - with minimal overhead. It works over HTTP/1.1, HTTP/2, and HTTP/3.
 
+<img width="1041" height="767" alt="image" src="https://github.com/user-attachments/assets/9385d9a7-dc11-4c66-bb84-4a1f3e540bce" />
+*Websockets vs HTTP request/response model*
+
 ### URI Structure
 ```
 wss://example.com:443/websocket/demo?foo=bar
