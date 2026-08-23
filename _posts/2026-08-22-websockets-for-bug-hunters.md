@@ -268,7 +268,7 @@ The script in our example is something like:
   <script>
     const output = document.getElementById("output");
 
-    // Your vulnerable lab server
+    // the vulnerable ws endpoint
     const conversationId = "b89bc0b8-f739-4e41-a052-ae56f7754946";
 
     const ws = new WebSocket(
