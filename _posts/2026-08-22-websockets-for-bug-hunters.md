@@ -326,3 +326,23 @@ As a practical example, I implemented a scenario I saw multiple times in bug bou
 3. UserB already intercepted some messages while chatting, now he simply can change the content of the message and replay
 <img width="2155" height="854" alt="image" src="https://github.com/user-attachments/assets/8ab74938-444f-4936-96e4-f0eda0488048" />
 <img width="2141" height="1227" alt="image" src="https://github.com/user-attachments/assets/1b13b710-261f-40f0-bd19-378860da8c7d" />
+
+### 3.3 Broken Object Level Authorization
+The good old IDOR, but this time not at the HTTP level, which makes it missed by many hunters and pentesters.
+
+#### 3.3.1 Detection
+Going through WebSockets history in Burp you will not notice any IDs if the WS endpoint is expecting IDs in query parameters
+<img width="2156" height="576" alt="image" src="https://github.com/user-attachments/assets/5ccf113c-91d2-48d2-a794-90237dcac863" />
+
+You got to send any WS endpoint you suspect to Repeater, click the pen, and clone the request you want to see in more detail
+<img width="2156" height="992" alt="image" src="https://github.com/user-attachments/assets/bb2dce86-9ca7-4279-b403-21d972ef50e5" />
+
+Notice that there is a query param `userId` that's worth testing for IDOR.
+
+#### 3.3.2 Exploitation
+After noticing that the chatting application only lets us to view the information related to the person we are chatting with, this makes it clear that users are not allowed to simple mass dump all users in the app without knowing their invitation code.
+
+<img width="1639" height="953" alt="image" src="https://github.com/user-attachments/assets/dfa52d4c-adbc-4534-9397-093e6ace1aaf" />
+*Changing userId to 2, returns data related to another user we don't have a direct chat with*
+<img width="2159" height="1194" alt="image" src="https://github.com/user-attachments/assets/11af1d16-f218-4408-944d-191dbfe5b166" />
+
