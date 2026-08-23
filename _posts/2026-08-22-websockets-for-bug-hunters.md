@@ -237,6 +237,8 @@ wss.on("connection", (ws) => {
 ```
 
 ## 3. WebSockets Vulnerabilities
+As part of WebSocket hunting, is gathering all `ws://` and `wss://` endpoints from your target's JS files, HTML source code. This step is important in all cases, whether you are hunting for auhenticated/unauthenticated IDOR, SSRF, RCE... It does not matter what bug you might find, what matters is that you correctly and effectively map the attack surface, then test against the typical bugs. In this guide I will focus on the bugs that are directly related to misconfigured WebSockets and not the typical bugs that happen in HTTP as well.
+
 ### 3.1 Cross-Site WebSocket Hijacking
 This is the top, most discussed bug when it comes to WebSockets, and that's for a clear reason; the great impact it can cause. Testing this bug is easy, and its impact can be devastating, however, in recent years its exploitation became a little harder, as SOP is on all browsers and any well-maintained website nowadays restricts auth cookies with `SameSite`, but, with all this, we still see it emerging in bug reports until today, and that's because only depending on the `SameSite` flag is not the ultimate mitigation. If initial detection tells you that this target is potentially vulnerable to CSWSH, and you have compromised a subdomain of your target, via a subdomain takeover for example, or an XSS on the same domain or a subdomain, then this can be used to perform websocket hijacking, and potentially get read & write access to the vulnerable websocket.
 
@@ -329,6 +331,7 @@ As a practical example, I implemented a scenario I saw multiple times in bug bou
 
 ### 3.3 Broken Object Level Authorization
 The good old IDOR, but this time not at the HTTP level, which makes it missed by many hunters and pentesters.
+Keep in mind that this is a post-auth IDOR, meaning that the attacker has authenticated during the handshake, so a pre-requisite for this bug, is the attacker having an account on the app. 
 
 #### 3.3.1 Detection
 Going through WebSockets history in Burp you will not notice any IDs if the WS endpoint is expecting IDs in query parameters
@@ -345,4 +348,18 @@ After noticing that the chatting application only lets us to view the informatio
 <img width="1639" height="953" alt="image" src="https://github.com/user-attachments/assets/dfa52d4c-adbc-4534-9397-093e6ace1aaf" />
 *Changing userId to 2, returns data related to another user we don't have a direct chat with*
 <img width="2159" height="1194" alt="image" src="https://github.com/user-attachments/assets/11af1d16-f218-4408-944d-191dbfe5b166" />
+
+### 3.4 Unauthenticated BOLA/BFLA
+This is an extension of the above bug, but more impactful with a simpler attack complexity. Attacker does not have to hold any auth tokens to access/modify sensitive data, making it a crit in almost all bug bounty programs, unlike the previous one, which is high at most.
+
+#### 3.4.1 Exploitation
+As part of your info gathering, you found an endpoint in the HTML source code, that you didn't find earlier while going through Burp history, and that might be because the devs have suspended the use of this functionality at the app, but maybe the websocket is still repsonding?
+```
+wss://target.tld/ws/users?userId=1000
+```
+
+To easily test unauthenticated WS endpoints, use Postman and make sure to set protocol to WebSocket
+<img width="2167" height="1457" alt="image" src="https://github.com/user-attachments/assets/b9c75336-7d70-4b42-a68a-4b84782adf8a" />
+
+---
 
