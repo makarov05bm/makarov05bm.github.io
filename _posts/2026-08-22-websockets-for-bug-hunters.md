@@ -321,8 +321,8 @@ While testing, always keep an eye on actions that change the privileges and acce
 As a practical example, I implemented a scenario I saw multiple times in bug bounty. A block functionality in chatting apps, that are poorly implemented and allows the attacker to continue sending messages after being blocked by the victim, as soon as the attacker is still on the original connection.
 
 1. Two users are chatting, the underlying protocol used to deliver messages is WS
-2. UserA blocks UserB, UI is froze, and supposedly they cannot send messages to each other from now on
+2. UserA blocks UserB, UI is frozen, and supposedly they cannot send messages to each other from now on
 <img width="2155" height="1188" alt="image" src="https://github.com/user-attachments/assets/807b30a8-959e-482c-8917-c89be172363b" />
-3. UserB already intercepted some messages while chatting, now he simple needs to change the content of the message and replay
+3. UserB already intercepted some messages while chatting, now he simply can change the content of the message and replay
 <img width="2155" height="854" alt="image" src="https://github.com/user-attachments/assets/8ab74938-444f-4936-96e4-f0eda0488048" />
 <img width="2141" height="1227" alt="image" src="https://github.com/user-attachments/assets/1b13b710-261f-40f0-bd19-378860da8c7d" />
