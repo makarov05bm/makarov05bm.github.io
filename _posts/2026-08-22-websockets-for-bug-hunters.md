@@ -329,6 +329,8 @@ As a practical example, I implemented a scenario I saw multiple times in bug bou
 <img width="2155" height="854" alt="image" src="https://github.com/user-attachments/assets/8ab74938-444f-4936-96e4-f0eda0488048" />
 <img width="2141" height="1227" alt="image" src="https://github.com/user-attachments/assets/1b13b710-261f-40f0-bd19-378860da8c7d" />
 
+**Note:** by staying on the same connection, we mean, not refreshing the page (if you are on the browser), because that would cause tthe JS to be reloaded and the WebSocket connection reestablished with the new auth token.
+
 ### 3.3 Broken Object Level Authorization
 The good old IDOR, but this time not at the HTTP level, which makes it missed by many hunters and pentesters.
 Keep in mind that this is a post-auth IDOR, meaning that the attacker has authenticated during the handshake, so a pre-requisite for this bug, is the attacker having an account on the app. 
