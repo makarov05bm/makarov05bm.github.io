@@ -316,3 +316,13 @@ We saw earlier that authentication in websockets is done only in handshake, and 
 
 #### 3.2.1 Detection
 While testing, always keep an eye on actions that change the privileges and access levels a user have. For example, an admin changes privs for an org member from read/write to read-only. If certain actions are carried through websockets, a good example, is applications that allow real-time document editing, like Figma... Always try to continue to do actions that admin "revoked" for you, and notice if they successfully go through. In the Figma case, after the admin changes your privs, and while staying in the application, try to modify a file and see if it actually works. If it does, that means that the ws backend is not checking your privileges in real-time, and only does so in the handshake, that's why when you continue editing the file while you are in the same WS connection that was established with your old token that has the higher privileges, the server just allows you to so, because it thinks that you have the right access level, as it hasn't yet been updated with your current privileges.
+
+#### 3.2.2 Exploitation
+As a practical example, I implemented a scenario I saw multiple times in bug bounty. A block functionality in chatting apps, that are poorly implemented and allows the attacker to continue sending messages after being blocked by the victim, as soon as the attacker is still on the original connection.
+
+1. Two users are chatting, the underlying protocol used to deliver messages is WS
+2. UserA blocks UserB, UI is froze, and supposedly they cannot send messages to each other from now on
+<img width="2155" height="1188" alt="image" src="https://github.com/user-attachments/assets/807b30a8-959e-482c-8917-c89be172363b" />
+3. UserB already intercepted some messages while chatting, now he simple needs to change the content of the message and replay
+<img width="2155" height="854" alt="image" src="https://github.com/user-attachments/assets/8ab74938-444f-4936-96e4-f0eda0488048" />
+<img width="2141" height="1227" alt="image" src="https://github.com/user-attachments/assets/1b13b710-261f-40f0-bd19-378860da8c7d" />
