@@ -355,11 +355,16 @@ This is an extension of the above bug, but more impactful with a simpler attack 
 #### 3.4.1 Exploitation
 As part of your info gathering, you found an endpoint in the HTML source code, that you didn't find earlier while going through Burp history, and that might be because the devs have suspended the use of this functionality at the app, but maybe the websocket is still repsonding?
 ```
-wss://target.tld/ws/users?userId=1000
+wss://target.tld/ws/fullnames?userId=1000
 ```
 
 To easily test unauthenticated WS endpoints, use Postman and make sure to set protocol to WebSocket
 <img width="2167" height="1457" alt="image" src="https://github.com/user-attachments/assets/b9c75336-7d70-4b42-a68a-4b84782adf8a" />
 
+These endpoints allow upgrade to ws without the server requiring an auth token, which in case of endpoints that returns sensitive data is totally devastating.
+
 ---
 
+Hope you learned a new trick.
+
+**STAY SHARP!**
