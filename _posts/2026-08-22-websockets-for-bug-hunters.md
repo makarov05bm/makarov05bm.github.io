@@ -6,7 +6,7 @@ categories: [WebSocket, Web Security]
 tags: [WebSocket, ws, AppSec]
 ---
 
-In this blog, I aim to provide bug hunters and pentesters with almost all they need to know to start hacking applications that utilize WebSockets, as it's a huge attack surface that usually goes under the radar in engagements. This blogs starts off by clearing the foundations that you need to easily understand attacks related to WS, because immediately hopping into the bugs and exploits will not make much sense, especially if you are the type of hacker who is not into checklists. Also, I built a lab with most of the bug explained in this blog, so you can get your hands dirty, not just another boring blog post.
+In this blog, I aim to provide bug hunters and pentesters with almost all they need to know to start hacking applications that utilize WebSockets, as it's a huge attack surface that usually goes under the radar in engagements. This blogs starts off by clearing the foundations that you need to easily understand attacks related to WS, because immediately hopping into the bugs and exploits will not make much sense, especially if you are the type of hacker who is not into checklists. Also, I built a [lab](https://github.com/makarov05bm/WSGoat) with most of the bug explained in this blog, so you can get your hands dirty, not just another boring blog post.
 
 ## 1. Primer on WebSockets
 The WebSocket protocol enables ongoing, full-duplex, bidirectional communication between web servers and web clients over an underlying TCP connection.
