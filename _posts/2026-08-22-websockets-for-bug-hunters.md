@@ -1,4 +1,4 @@
----
+<img width="2161" height="744" alt="image" src="https://github.com/user-attachments/assets/12084801-133f-41f0-985a-5b2c1174e0cb" />---
 layout: post
 title: "Bug Hunter's Practical Manual on WebSockets"
 date: 2026-08-22 08:00:00 +0100
@@ -359,6 +359,34 @@ To easily test unauthenticated WS endpoints, use Postman and make sure to set pr
 <img width="2167" height="1457" alt="image" src="https://github.com/user-attachments/assets/b9c75336-7d70-4b42-a68a-4b84782adf8a" />
 
 These endpoints allow upgrade to ws without the server requiring an auth token, which in case of endpoints that returns sensitive data is totally devastating.
+
+### 3.5 Message Manipulation and User Impersonation
+While communicating through WebSocket, users have the ability to intercept the messages being sent from `client->server` and `server->client`, and the ability to tamper with the contents of these messages without any server-side checks, or where the server broadcasts fields that are sensitive to tampering, like a username field in a chatting app, which if manipulated will lead to impersonate the real sender of a message.
+
+#### 3.5.1 Detection
+When going through WebSocket messages history, whenever you spot a message going to the server or coming from the server and you see sensitive fields, like IDs, username, message content... Always try to manipulate those. The impact can go from simple impersonation, to unauthorized access, XSS...
+
+#### 3.5.2 Exploitation
+In our chatting app, we noticed that when we send a message, it gets sent as a WS message to the server, then the server broadcasts it to the user we are talking to.
+<img width="2161" height="684" alt="image" src="https://github.com/user-attachments/assets/ff80b248-2b47-46f7-bbae-3a97c3703338" />
+*Client(message sender) -> Server*
+
+<img width="2161" height="744" alt="image" src="https://github.com/user-attachments/assets/da8cfd13-56ac-44c6-8414-2026d830f1d3" />
+*Server -> Client(message receiver)*
+
+Let's send this last message to Repeater, notice that multiple fields are sensitive to alteration in the context or a chatting app. Let's say we are user "brave", we intercepted our own message
+
+<img width="1080" height="451" alt="image" src="https://github.com/user-attachments/assets/a99e8411-02e0-456f-bb49-04c1c4878736" />
+
+What if we change the username and content and replay the message, which will be broadcasted from server to client
+
+<img width="1080" height="451" alt="image" src="https://github.com/user-attachments/assets/9b615dd5-2c8d-4f83-9cc0-6b489e14c17d" />
+
+<img width="2165" height="1412" alt="image" src="https://github.com/user-attachments/assets/ad8231f8-45a8-4a97-b736-abf4e44d6159" />
+
+Notice after we replayed the WebSocket message, the victim received it (wiener) as it was sent from him, but he never sent it
+<img width="2126" height="942" alt="image" src="https://github.com/user-attachments/assets/1c7dd808-bc4f-4224-8aab-534423f795c5" />
+
 
 ---
 
