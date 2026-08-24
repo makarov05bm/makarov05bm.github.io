@@ -1,4 +1,4 @@
-<img width="2161" height="744" alt="image" src="https://github.com/user-attachments/assets/12084801-133f-41f0-985a-5b2c1174e0cb" />---
+---
 layout: post
 title: "Bug Hunter's Practical Manual on WebSockets"
 date: 2026-08-22 08:00:00 +0100
