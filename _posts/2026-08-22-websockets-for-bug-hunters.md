@@ -384,7 +384,8 @@ What if we change the username and content and replay the message, which will be
 
 <img width="2165" height="1412" alt="image" src="https://github.com/user-attachments/assets/ad8231f8-45a8-4a97-b736-abf4e44d6159" />
 
-Notice after we replayed the WebSocket message, the victim received it (wiener) as it was sent from him, but he never sent it
+Notice after we replayed the WebSocket message, the victim (wiener) received the server-broadcasted WS message as it was sent from him, but he never sent it
+
 <img width="2126" height="942" alt="image" src="https://github.com/user-attachments/assets/1c7dd808-bc4f-4224-8aab-534423f795c5" />
 
 ---
