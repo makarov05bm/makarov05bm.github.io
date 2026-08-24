@@ -239,6 +239,8 @@ While doing your usual testing, you notice an endpoint that performs an upgrade 
 
 In the above screenshot, the target application performed a websocket upgrade request so that the user's communication between the chat's two parties is done via websocket smoothly, however, altering the `Origin` header didn't trigger the backend to refuse the upgrade, meaning it accepts upgrade requests from any origin, making the ws connection vulnerable to hijacking.
 
+In `SameSite`, "site" means the registrable domain (eTLD+1), not the full origin. So `app.target.com`, `api.target.com`, and bank.com are all considered the same site to each other, since they share `target.com` as the registrable domain. Scheme (`http` vs `https`) is also ignored for this "site" determination. So, a request from `app.target.com` to `api.target.com` is treated as same-site, and the `SameSite` attribute (`Strict` or `Lax`) doesn't restrict it at all.
+
 <img width="1263" height="249" alt="image" src="https://github.com/user-attachments/assets/9c16cc4a-2ff7-4ec3-bf2d-e182de849a60" />
 *Table shows how the SameSite rule applies*
 
