@@ -112,7 +112,7 @@ const ws = new WebSocket("wss://example.com/ws");
 
 What we need to keep in mind, is that as we've seen already that WebSockets are stateful, meaning after the first handshake between the client and the server, they from now on know each other, and there is no need to send the auth token or cookie with each request (typically called a message in WS) unlike with HTTP. But, how does the server prove client's identity then? It happens at the handshake actually, with the first HTTP GET request sent by the client with the `Upgrade`, `Connection`, `Sec-WebSocket-Key`... headers, the client also usually attaches a cookie (or other methods we will see in just a bit) to the request, and the server verifies then caches the user's data from the cookie, only then it responds with `101`. And after that, a communication channel is open between the client and server and there is no need to send the cookie or any other auth mechanism at all. This is so important, so keep it in mind.
 
-There exists currently three approaches to prove identity for WS, each comes with pros and cons.
+There exists currently three approaches to prove identity for WS, let's check them out one by one.
 
 **Note:** The code samples below are pseudo codes, keeping only the important parts to understand how each mechanism works.
 
