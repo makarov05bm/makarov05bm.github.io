@@ -82,14 +82,8 @@ Client does not directly hop to using WS, instead, client has to issue an upgrad
 
 #### 1. Client handshake request
 A Websocket handshake request is a normal GET request to a special endpoint, with some special required headers, to indicate to the server that the client is willing to upgrade the connection from HTTP to WS:
-```http
-GET /chat HTTP/1.1
-Host: example.com:8000
-Upgrade: websocket
-Connection: Upgrade
-Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==
-Sec-WebSocket-Version: 13
-```
+
+<img width="1398" height="460" alt="image" src="https://github.com/user-attachments/assets/72d68ca2-2a02-47e2-8b2d-4b01fd3248e5" />
 
 - `Upgrade: websocket` - indicates that the client wants to upgrade the connection to use the WebSocket protocol
 - `Connection: Upgrade` - tells proxies or other intermediaries to also upgrade the connection
@@ -98,12 +92,8 @@ Sec-WebSocket-Version: 13
 
 #### 2. Server handshake response
 Once the server receives the handshake request, if it supports WS and accepts the request to upgrade, it responds with a `101 Switching Protocols` HTTP response:
-```http
-HTTP/1.1 101 Switching Protocols
-Upgrade: websocket
-Connection: Upgrade
-Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=
-```
+
+<img width="1422" height="426" alt="image" src="https://github.com/user-attachments/assets/5056b416-8877-4c1d-aa57-09430eb8950f" />
 
 - `HTTP/1.1 101 Switching Protocols` - indicates the successful upgrade from HTTP to WebSocket
 - `Upgrade: websocket` - confirms the protocol upgrade
