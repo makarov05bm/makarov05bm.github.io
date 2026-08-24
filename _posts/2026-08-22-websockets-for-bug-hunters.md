@@ -387,7 +387,6 @@ What if we change the username and content and replay the message, which will be
 Notice after we replayed the WebSocket message, the victim received it (wiener) as it was sent from him, but he never sent it
 <img width="2126" height="942" alt="image" src="https://github.com/user-attachments/assets/1c7dd808-bc4f-4224-8aab-534423f795c5" />
 
-
 ---
 
 Hope you learned a new trick.
