@@ -689,7 +689,7 @@ We see that only the scheme, host and the request uri (path and query params) ar
 Add `X-Forwarded-For` to the cache key:
 ```nginx
 location /preview-link {
-    proxy_pass http://flask:7000/preview-link;ca
+    proxy_pass http://flask:7000/preview-link;
     proxy_cache static_cache;
     proxy_cache_valid 200 10m;
     proxy_cache_key $scheme$host$request_uri$http_x_forwarded_host;
