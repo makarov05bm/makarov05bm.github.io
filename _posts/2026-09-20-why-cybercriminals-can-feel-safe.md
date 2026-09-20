@@ -1,19 +1,16 @@
 ---
 layout: post
-title: "Why Cyber Criminals Seem To Be More Motivated Than Security Professionals?"
+title: "Why Cyber Criminals Can Feel Safe Committing Crime?"
 date: 2026-09-20 00:00:00 +0100
 categories: [Investigations, Underground, Cybercrime]
 tags: [cybercrime, adversary]
 ---
 
-For anyone who's been doing security for some time, it must have come to your attenttion that cyber criminals keep coming with genius tactics,
-techniques and ideas, in a way that seem to always get even better. And I've decided to go deeper into the cyber crime world, investigate dark web forums, 
-Malware-as-a-service platforms, and private communication channels to see what may be the motivation and what is the reward we are missing.
+Cybercrime is often discussed in terms of vulnerabilities, malware, stolen credentials, and the techniques attackers use to compromise their targets. But the technical side is only part of the picture. Behind many successful cybercrime operations is a much broader ecosystem shaped by money, anonymity, infrastructure, and, perhaps most importantly, jurisdiction.
 
-## The Common Denominator
-If I am to summarize this world, I'd say: cyber criminals just posses a free mind! As it may seem very straightforward, but if you ever done cyber security work, you know that this field
-is so overwhelming and you usually don't get the inner peace to think deeply into the very low level of systems, deep to the bits and bytes level of a system, that's what criminals have
-the time, freedom and motivation to explore and break. Needless to say the financial motivations are a great factor, but that's something we can disagree on, although I have a take that I'll share in a bit.
+For this investigation, I wanted to look beyond the technical details and examine the factors that allow cybercriminals to operate with relatively little fear of consequences. I explored underground forums, Malware-as-a-Service platforms, leaked discussions, and other sources to understand how cybercriminals perceive risk, what motivates them, and how the legal and geopolitical environment can influence their behavior.
+
+One of the most interesting factors is the gap between where a cybercrime is committed and where the person responsible is physically located. A hacker can target victims thousands of kilometers away while remaining in a country where the legal consequences may be very different from those faced by the victim. This creates a complicated intersection between cybercrime, national jurisdiction, extradition, and international law.
 
 ## The Jurisdictional Safe Haven
 Certain legislation can indirectly create incentives for cybercriminals to carry out attacks internationally without facing prosecution in their home countries. Two of the most well-known examples are Russia and the DPRK, but there are additional complexities to consider.
